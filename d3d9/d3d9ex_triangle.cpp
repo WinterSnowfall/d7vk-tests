@@ -30,6 +30,7 @@ struct RGBVERTEX {
 #define D3DPMISCCAPS_MRTPOSTPIXELSHADERBLENDING 0x00080000L
 #define D3DPMISCCAPS_FOGVERTEXCLAMPED           0x00100000L
 
+#define D3DPRASTERCAPS_WBUFFER                  0x00040000L
 #define D3DPRASTERCAPS_SCISSORTEST              0x01000000L
 #define D3DPRASTERCAPS_SLOPESCALEDEPTHBIAS      0x02000000L
 #define D3DPRASTERCAPS_DEPTHBIAS                0x04000000L
@@ -679,6 +680,11 @@ class RGBTriangle {
                 std::cout << "  + D3DPMISCCAPS_POSTBLENDSRGBCONVERT is supported" << std::endl;
             else
                 std::cout << "  - D3DPMISCCAPS_POSTBLENDSRGBCONVERT is not supported" << std::endl;
+
+            if (caps9.RasterCaps & D3DPRASTERCAPS_WBUFFER)
+                std::cout << "  + D3DPRASTERCAPS_WBUFFER is supported" << std::endl;
+            else
+                std::cout << "  - D3DPRASTERCAPS_WBUFFER is not supported" << std::endl;
 
             if (caps9.RasterCaps & D3DPRASTERCAPS_SCISSORTEST)
                 std::cout << "  + D3DPRASTERCAPS_SCISSORTEST is supported" << std::endl;

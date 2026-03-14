@@ -38,6 +38,18 @@ HRESULT WINAPI EnumModesCallback2(LPDDSURFACEDESC2 lpDDSurfaceDesc, LPVOID lpCon
     return DDENUMRET_OK;
 }
 
+HRESULT WINAPI ListMipChainSurfaces7Callback(IDirectDrawSurface7* subsurf, DDSURFACEDESC2* desc, void* ctx) {
+    IDirectDrawSurface7** nextMip = static_cast<IDirectDrawSurface7**>(ctx);
+
+    if ((desc->ddsCaps.dwCaps  & DDSCAPS_MIPMAP)
+     || (desc->ddsCaps.dwCaps2 & DDSCAPS2_MIPMAPSUBLEVEL)) {
+      *nextMip = subsurf;
+      return DDENUMRET_CANCEL;
+    }
+
+    return DDENUMRET_OK;
+}
+
 class RGBTriangle {
 
     public:
@@ -256,6 +268,111 @@ class RGBTriangle {
             }
         }
 
+        void startTests() {
+            m_totalTests  = 0;
+            m_passedTests = 0;
+
+            std::cout << std::endl << "Running D3D7 tests:" << std::endl;
+        }
+
+        // Test setting a viewport with zero MinZ/MaxZ
+        void testZeroViewport() {
+            createDeviceWithFlags(IID_IDirect3DTnLHalDevice, true);
+
+            m_totalTests++;
+
+            D3DVIEWPORT7 viewport7 = { };
+            viewport7.dwX = 0;
+            viewport7.dwY = 0;
+            viewport7.dwWidth = WINDOW_WIDTH;
+            viewport7.dwHeight = WINDOW_HEIGHT;
+            viewport7.dvMinZ = 0.0f;
+            viewport7.dvMaxZ = 0.0f;
+            HRESULT status = m_device->SetViewport(&viewport7);
+
+            viewport7 = { };
+            m_device->GetViewport(&viewport7);
+            //std::cout << format("  ~ dvMaxZ: ", viewport7.dvMaxZ) << std::endl;
+
+            if (FAILED(status) || viewport7.dvMaxZ != 0.001f) {
+                std::cout << "  - The ZeroViewport test has failed" << std::endl;
+            } else {
+                m_passedTests++;
+                std::cout << "  + The ZeroViewport test has passed" << std::endl;
+            }
+        }
+
+        // Test creating a surface with an invalid mip map count vs surface size
+        void testMipMapLevels() {
+            createDeviceWithFlags(IID_IDirect3DTnLHalDevice, true);
+
+            m_totalTests++;
+
+            Com<IDirectDrawSurface7> tex7;
+            DDSURFACEDESC2 desc2 = { };
+            desc2.dwSize = sizeof(DDSURFACEDESC2);
+            desc2.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT | DDSD_MIPMAPCOUNT;
+            desc2.ddsCaps.dwCaps = DDSCAPS_TEXTURE | DDSCAPS_MIPMAP | DDSCAPS_COMPLEX;
+            desc2.dwMipMapCount = 10; // Too many mips in theory for the texture size
+            desc2.dwWidth = 8;
+            desc2.dwHeight = 4;
+            HRESULT status = m_ddraw->CreateSurface(&desc2, &tex7, NULL);
+
+            // Outright fails on native, but we have to account for WineD3D behavior
+            if (FAILED(status)) {
+                m_passedTests++;
+                std::cout << "  + The mip map level test has succeded" << std::endl;
+            } else {
+                Com<IDirectDrawSurface7> mip7 = tex7;
+                uint32_t mipCount = 1;
+
+                while (mip7 != nullptr) {
+                    IDirectDrawSurface7* parentSurface = mip7.ptr();
+                    mip7 = nullptr;
+                    parentSurface->EnumAttachedSurfaces(&mip7, ListMipChainSurfaces7Callback);
+                    if (mip7 != nullptr) {
+                        //desc2 = { };
+                        //desc2.dwSize = sizeof(DDSURFACEDESC2);
+                        //mip7->GetSurfaceDesc(&desc2);
+                        mipCount++;
+                        //std::cout << format("  ~ Mip ", mipCount, " size: ", desc2.dwWidth , "x", desc2.dwHeight) << std::endl;
+                    }
+                }
+
+                // WineD3D creates the surface with the requested mip count,
+                // even if surface dimensions generate multiple 1x1 mip maps
+                if (FAILED(status) || mipCount != 10) {
+                    std::cout << "  - The mip map level test has failed" << std::endl;
+                } else {
+                    m_passedTests++;
+                    std::cout << "  + The mip map level test has succeded" << std::endl;
+                }
+            }
+        }
+
+        // Test setting a few render states which are obsolete in D3D7
+        void testObsoleteRenderStates() {
+            createDeviceWithFlags(IID_IDirect3DTnLHalDevice, true);
+
+            m_totalTests++;
+
+            HRESULT status1 = m_device->SetRenderState(D3DRENDERSTATE_ANISOTROPY, TRUE);
+            HRESULT status2 = m_device->SetRenderState(D3DRENDERSTATE_MONOENABLE, TRUE);
+            HRESULT status3 = m_device->SetRenderState(D3DRENDERSTATE_ROP2, TRUE);
+            HRESULT status4 = m_device->SetRenderState(D3DRENDERSTATE_STIPPLEENABLE, TRUE);
+
+            if (FAILED(status1) && FAILED(status2) && FAILED(status3) && FAILED(status4)) {
+                m_passedTests++;
+                std::cout << "  + The obsolete render state test has succeded" << std::endl;
+            } else {
+                std::cout << "  - The obsolete render state test has failed" << std::endl;
+            }
+        }
+
+        void printTestResults() {
+            std::cout << std::endl << format("Passed ", m_passedTests, "/", m_totalTests, " tests") << std::endl;
+        }
+
         void prepare() {
             createDeviceWithFlags(IID_IDirect3DTnLHalDevice, true);
 
@@ -394,6 +511,13 @@ int main(int, char**) {
         rgbTriangle.listAdapterDisplayModes();
         rgbTriangle.listDeviceCapabilities();
         rgbTriangle.listAvailableTextureMemory();
+
+        // run D3D Device tests
+        rgbTriangle.startTests();
+        rgbTriangle.testZeroViewport();
+        rgbTriangle.testMipMapLevels();
+        rgbTriangle.testObsoleteRenderStates();
+        rgbTriangle.printTestResults();
 
         // D3D7 triangle
         rgbTriangle.prepare();
