@@ -1,4 +1,3 @@
-#include <map>
 #include <array>
 #include <iostream>
 
@@ -31,7 +30,9 @@ interface DECLSPEC_UUID("F5049E77-4861-11D2-A407-00A0C90629A8") IDirect3D7;
 HRESULT WINAPI EnumModesCallback2(LPDDSURFACEDESC2 lpDDSurfaceDesc, LPVOID lpContext) {
     UINT* adapterModeCount = reinterpret_cast<UINT*>(lpContext);
 
-    std::cout << format("    ", lpDDSurfaceDesc->dwWidth, " x ", lpDDSurfaceDesc->dwHeight, " @ ", lpDDSurfaceDesc->dwRefreshRate, " Hz") << std::endl;
+    std::cout << format("    ", lpDDSurfaceDesc->dwWidth, " x ", lpDDSurfaceDesc->dwHeight,
+                        " : ", lpDDSurfaceDesc->ddpfPixelFormat.dwRGBBitCount, " bpp",
+                        " @ ", lpDDSurfaceDesc->dwRefreshRate, " Hz") << std::endl;
 
     *adapterModeCount = *adapterModeCount + 1;
 

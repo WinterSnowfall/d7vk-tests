@@ -1,4 +1,3 @@
-#include <map>
 #include <array>
 #include <iostream>
 
@@ -31,7 +30,9 @@ interface DECLSPEC_UUID("BB223240-E72B-11D0-A9B4-00AA00C0993E") IDirect3D3;
 HRESULT WINAPI EnumModesCallback2(LPDDSURFACEDESC2 lpDDSurfaceDesc, LPVOID lpContext) {
     UINT* adapterModeCount = reinterpret_cast<UINT*>(lpContext);
 
-    std::cout << format("    ", lpDDSurfaceDesc->dwWidth, " x ", lpDDSurfaceDesc->dwHeight, " @ ", lpDDSurfaceDesc->dwRefreshRate, " Hz") << std::endl;
+    std::cout << format("    ", lpDDSurfaceDesc->dwWidth, " x ", lpDDSurfaceDesc->dwHeight,
+                        " : ", lpDDSurfaceDesc->ddpfPixelFormat.dwRGBBitCount, " bpp",
+                        " @ ", lpDDSurfaceDesc->dwRefreshRate, " Hz") << std::endl;
 
     *adapterModeCount = *adapterModeCount + 1;
 
@@ -237,6 +238,8 @@ class RGBTriangle {
 
             std::cout << std::endl << "Listing device capability limits:" << std::endl;
 
+            std::cout << format("  ~ dwMaxBufferSize: ", caps6HAL.dwMaxBufferSize) << std::endl;
+            std::cout << format("  ~ dwMaxVertexCount: ", caps6HAL.dwMaxVertexCount) << std::endl;
             std::cout << format("  ~ dwMinTextureWidth: ", caps6HAL.dwMinTextureWidth) << std::endl;
             std::cout << format("  ~ dwMinTextureHeight: ", caps6HAL.dwMinTextureHeight) << std::endl;
             std::cout << format("  ~ dwMaxTextureWidth: ", caps6HAL.dwMaxTextureWidth) << std::endl;

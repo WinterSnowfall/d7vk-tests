@@ -8,8 +8,8 @@
 #include "../common/error.h"
 #include "../common/str.h"
 
-// This is the D3DDEVICEDESC shipped with D3D5
-typedef struct _D3DDeviceDesc2 {
+// This is the D3DDEVICEDESC shipped with D3D3
+typedef struct _D3DDeviceDesc3 {
         DWORD            dwSize;
         DWORD            dwFlags;
         D3DCOLORMODEL    dcmColorModel;
@@ -23,26 +23,12 @@ typedef struct _D3DDeviceDesc2 {
         DWORD            dwDeviceZBufferBitDepth;
         DWORD            dwMaxBufferSize;
         DWORD            dwMaxVertexCount;
-
-        DWORD            dwMinTextureWidth,dwMinTextureHeight;
-        DWORD            dwMaxTextureWidth,dwMaxTextureHeight;
-        DWORD            dwMinStippleWidth,dwMaxStippleWidth;
-        DWORD            dwMinStippleHeight,dwMaxStippleHeight;
-} D3DDEVICEDESC2;
-
-struct RGBVERTEX {
-    FLOAT x, y, z;
-    DWORD colour;
-    DWORD specular;
-    FLOAT u, v;
-};
+} D3DDEVICEDESC3;
 
 #ifdef __CRT_UUID_DECL
-__CRT_UUID_DECL(IDirectDraw2, 0xB3A6F3E0, 0x2B43, 0x11CF, 0xA2, 0xDE, 0x00, 0xAA, 0x00, 0xB9, 0x33, 0x56);
-__CRT_UUID_DECL(IDirect3D2,   0x6AAE1EC1, 0x662A, 0x11D0, 0x88, 0x9D, 0x00, 0xAA, 0x00, 0xBB, 0xB7, 0x6A);
+__CRT_UUID_DECL(IDirect3D, 0x3BBA0080, 0x2421, 0x11CF, 0xA3, 0x1A, 0x00, 0xAA, 0x00, 0xB9, 0x33, 0x56);
 #elif defined(_MSC_VER)
-interface DECLSPEC_UUID("B3A6F3E0-2B43-11CF-A2DE-00AA00B93356") IDirectDraw2;
-interface DECLSPEC_UUID("6AAE1EC1-662A-11D0-889D-00AA00BBB76A") IDirect3D2;
+interface DECLSPEC_UUID("3BBA0080-2421-11CF-A31A-00AA00B93356") IDirect3D;
 #endif
 
 #define PTRCLEARED(ptr) (ptr == nullptr)
@@ -66,11 +52,11 @@ class RGBTriangle {
 
     public:
 
-        static constexpr IID IID_IDirect3DHALDevice     = { 0x84E63DE0, 0x46AA, 0x11CF, {0x81, 0x6F, 0x00, 0x00, 0xC0, 0x20, 0x15, 0x6E} };
-        static constexpr IID IID_IDirect3DRGBDevice     = { 0xA4665C60, 0x2673, 0x11CF, {0xA3, 0x1A, 0x00, 0xAA, 0x00, 0xB9, 0x33, 0x56} };
+        static constexpr IID IID_IDirect3DHALDevice = { 0x84E63DE0, 0x46AA, 0x11CF, {0x81, 0x6F, 0x00, 0x00, 0xC0, 0x20, 0x15, 0x6E} };
+        static constexpr IID IID_IDirect3DRGBDevice = { 0xA4665C60, 0x2673, 0x11CF, {0xA3, 0x1A, 0x00, 0xAA, 0x00, 0xB9, 0x33, 0x56} };
 
-        static constexpr const char* TRIANGLE_ID    = "D3D5_Triangle";
-        static constexpr const char* TRIANGLE_TITLE = "D3D5 Triangle - Blisto Stone Age Testing Edition";
+        static constexpr const char* TRIANGLE_ID    = "D3D3_Triangle";
+        static constexpr const char* TRIANGLE_TITLE = "D3D3 Triangle - Blisto Cretaceous Testing Edition";
 
         static constexpr UINT WINDOW_WIDTH  = 700;
         static constexpr UINT WINDOW_HEIGHT = 700;
@@ -83,15 +69,9 @@ class RGBTriangle {
             DirectDrawCreate = (decltype(DirectDrawCreate))GetProcAddress(hm, "DirectDrawCreate");
 
             // DDraw Interface
-            Com<IDirectDraw> ddrawBase;
-            HRESULT status = DirectDrawCreate(NULL, &ddrawBase, NULL);
+            HRESULT status = DirectDrawCreate(NULL, &m_ddraw, NULL);
             if (FAILED(status))
                 throw Error("Failed to create DDraw interface");
-
-            // DDraw2 Interface
-            status = ddrawBase->QueryInterface(__uuidof(IDirectDraw2), reinterpret_cast<void**>(&m_ddraw));
-            if (FAILED(status))
-                throw Error("Failed to create DDraw2 interface");
 
             status = m_ddraw->SetCooperativeLevel(m_hWnd, DDSCL_NORMAL);
             if (FAILED(status))
@@ -124,25 +104,25 @@ class RGBTriangle {
             clipper->SetHWnd(0, m_hWnd);
             m_primarySurf->SetClipper(clipper.ptr());
 
-            // D3D5 Interface
-            status = m_ddraw->QueryInterface(__uuidof(IDirect3D2), reinterpret_cast<void**>(&m_d3d));
+            // D3D3 Interface
+            status = m_ddraw->QueryInterface(__uuidof(IDirect3D), reinterpret_cast<void**>(&m_d3d));
             if (FAILED(status))
-                throw Error("Failed to create D3D5 interface");
+                throw Error("Failed to create D3D3 interface");
 
-            // D3D5 Viewport
-            D3DVIEWPORT2 viewPortData2 = { };
-            viewPortData2.dwSize       = sizeof(D3DVIEWPORT2);
-            viewPortData2.dwWidth      = WINDOW_WIDTH;
-            viewPortData2.dwHeight     = WINDOW_HEIGHT;
-            viewPortData2.dvClipX      = -1.0f;
-            viewPortData2.dvClipWidth  = 2.0f;
-            viewPortData2.dvClipY      = 1.0f;
-            viewPortData2.dvClipHeight = 2.0f;
-            viewPortData2.dvMaxZ       = 1.0f;
+            // D3D3 Viewport
+            D3DVIEWPORT viewPortData = { };
+            viewPortData.dwSize   = sizeof(D3DVIEWPORT);
+            viewPortData.dwWidth  = WINDOW_WIDTH;
+            viewPortData.dwHeight = WINDOW_HEIGHT;
+            viewPortData.dvScaleX = 1.0f;
+            viewPortData.dvScaleY = 1.0f;
+            viewPortData.dvMaxX   = 1.0f;
+            viewPortData.dvMaxY   = 1.0f;
+            viewPortData.dvMaxZ   = 1.0f;
             status = m_d3d->CreateViewport(&m_viewport, NULL);
             if (FAILED(status))
-                throw Error("Failed to create D3D5 viewport");
-            m_viewport->SetViewport2(&viewPortData2);
+                throw Error("Failed to create D3D3 viewport");
+            m_viewport->SetViewport(&viewPortData);
 
             createDeviceWithFlags(IID_IDirect3DHALDevice, true);
         }
@@ -163,147 +143,205 @@ class RGBTriangle {
 
         // D3D Device capabilities check
         void listDeviceCapabilities() {
-            D3DDEVICEDESC2 caps5HAL = { };
-            caps5HAL.dwSize = sizeof(D3DDEVICEDESC2);
-            D3DDEVICEDESC2 caps5HEL = { };
-            caps5HEL.dwSize = sizeof(D3DDEVICEDESC2);
+            D3DDEVICEDESC3 caps3HAL = { };
+            caps3HAL.dwSize = sizeof(D3DDEVICEDESC3);
+            D3DDEVICEDESC3 caps3HEL = { };
+            caps3HEL.dwSize = sizeof(D3DDEVICEDESC3);
 
             // get the capabilities from the D3D device in HAL mode
             createDeviceWithFlags(IID_IDirect3DHALDevice, true);
-            m_device->GetCaps(reinterpret_cast<D3DDEVICEDESC*>(&caps5HAL),
-                              reinterpret_cast<D3DDEVICEDESC*>(&caps5HEL));
+            m_device->GetCaps(reinterpret_cast<D3DDEVICEDESC*>(&caps3HAL),
+                              reinterpret_cast<D3DDEVICEDESC*>(&caps3HEL));
 
             std::cout << std::endl << "Listing device capabilities support:" << std::endl;
 
-            if (caps5HAL.dwDevCaps & D3DDEVCAPS_CANBLTSYSTONONLOCAL)
+            if (caps3HAL.dwDevCaps & D3DDEVCAPS_CANBLTSYSTONONLOCAL)
                 std::cout << "  + D3DDEVCAPS_CANBLTSYSTONONLOCAL is supported" << std::endl;
             else
                 std::cout << "  - D3DDEVCAPS_CANBLTSYSTONONLOCAL is not supported" << std::endl;
 
-            if (caps5HAL.dwDevCaps & D3DDEVCAPS_CANRENDERAFTERFLIP)
+            if (caps3HAL.dwDevCaps & D3DDEVCAPS_CANRENDERAFTERFLIP)
                 std::cout << "  + D3DDEVCAPS_CANRENDERAFTERFLIP is supported" << std::endl;
             else
                 std::cout << "  - D3DDEVCAPS_CANRENDERAFTERFLIP is not supported" << std::endl;
 
-            if (caps5HAL.dwDevCaps & D3DDEVCAPS_DRAWPRIMTLVERTEX)
+            if (caps3HAL.dwDevCaps & D3DDEVCAPS_DRAWPRIMTLVERTEX)
                 std::cout << "  + D3DDEVCAPS_DRAWPRIMTLVERTEX is supported" << std::endl;
             else
                 std::cout << "  - D3DDEVCAPS_DRAWPRIMTLVERTEX is not supported" << std::endl;
 
-            if (caps5HAL.dwDevCaps & D3DDEVCAPS_EXECUTESYSTEMMEMORY)
+            if (caps3HAL.dwDevCaps & D3DDEVCAPS_EXECUTESYSTEMMEMORY)
                 std::cout << "  + D3DDEVCAPS_EXECUTESYSTEMMEMORY is supported" << std::endl;
             else
                 std::cout << "  - D3DDEVCAPS_EXECUTESYSTEMMEMORY is not supported" << std::endl;
 
-            if (caps5HAL.dwDevCaps & D3DDEVCAPS_EXECUTEVIDEOMEMORY)
+            if (caps3HAL.dwDevCaps & D3DDEVCAPS_EXECUTEVIDEOMEMORY)
                 std::cout << "  + D3DDEVCAPS_EXECUTEVIDEOMEMORY is supported" << std::endl;
             else
                 std::cout << "  - D3DDEVCAPS_EXECUTEVIDEOMEMORY is not supported" << std::endl;
 
-            if (caps5HAL.dwDevCaps & D3DDEVCAPS_FLOATTLVERTEX)
+            if (caps3HAL.dwDevCaps & D3DDEVCAPS_FLOATTLVERTEX)
                 std::cout << "  + D3DDEVCAPS_FLOATTLVERTEX is supported" << std::endl;
             else
                 std::cout << "  - D3DDEVCAPS_FLOATTLVERTEX is not supported" << std::endl;
 
-            if (caps5HAL.dwDevCaps & D3DDEVCAPS_HWRASTERIZATION)
+            if (caps3HAL.dwDevCaps & D3DDEVCAPS_HWRASTERIZATION)
                 std::cout << "  + D3DDEVCAPS_HWRASTERIZATION is supported" << std::endl;
             else
                 std::cout << "  - D3DDEVCAPS_HWRASTERIZATION is not supported" << std::endl;
 
-            if (caps5HAL.dwDevCaps & D3DDEVCAPS_HWTRANSFORMANDLIGHT)
+            if (caps3HAL.dwDevCaps & D3DDEVCAPS_HWTRANSFORMANDLIGHT)
                 std::cout << "  + D3DDEVCAPS_HWTRANSFORMANDLIGHT is supported" << std::endl;
             else
                 std::cout << "  - D3DDEVCAPS_HWTRANSFORMANDLIGHT is not supported" << std::endl;
 
-            if (caps5HAL.dwDevCaps & D3DDEVCAPS_SEPARATETEXTUREMEMORIES)
+            if (caps3HAL.dwDevCaps & D3DDEVCAPS_SEPARATETEXTUREMEMORIES)
                 std::cout << "  + D3DDEVCAPS_SEPARATETEXTUREMEMORIES is supported" << std::endl;
             else
                 std::cout << "  - D3DDEVCAPS_SEPARATETEXTUREMEMORIES is not supported" << std::endl;
 
-            if (caps5HAL.dwDevCaps & D3DDEVCAPS_SORTDECREASINGZ)
+            if (caps3HAL.dwDevCaps & D3DDEVCAPS_SORTDECREASINGZ)
                 std::cout << "  + D3DDEVCAPS_SORTDECREASINGZ is supported" << std::endl;
             else
                 std::cout << "  - D3DDEVCAPS_SORTDECREASINGZ is not supported" << std::endl;
 
-            if (caps5HAL.dwDevCaps & D3DDEVCAPS_SORTEXACT)
+            if (caps3HAL.dwDevCaps & D3DDEVCAPS_SORTEXACT)
                 std::cout << "  + D3DDEVCAPS_SORTEXACT is supported" << std::endl;
             else
                 std::cout << "  - D3DDEVCAPS_SORTEXACT is not supported" << std::endl;
 
-            if (caps5HAL.dwDevCaps & D3DDEVCAPS_SORTINCREASINGZ)
+            if (caps3HAL.dwDevCaps & D3DDEVCAPS_SORTINCREASINGZ)
                 std::cout << "  + D3DDEVCAPS_SORTINCREASINGZ is supported" << std::endl;
             else
                 std::cout << "  - D3DDEVCAPS_SORTINCREASINGZ is not supported" << std::endl;
 
-            if (caps5HAL.dwDevCaps & D3DDEVCAPS_TEXTURENONLOCALVIDMEM)
+            if (caps3HAL.dwDevCaps & D3DDEVCAPS_TEXTURENONLOCALVIDMEM)
                 std::cout << "  + D3DDEVCAPS_TEXTURENONLOCALVIDMEM is supported" << std::endl;
             else
                 std::cout << "  - D3DDEVCAPS_TEXTURENONLOCALVIDMEM is not supported" << std::endl;
 
-            if (caps5HAL.dwDevCaps & D3DDEVCAPS_TEXTURESYSTEMMEMORY)
+            if (caps3HAL.dwDevCaps & D3DDEVCAPS_TEXTURESYSTEMMEMORY)
                 std::cout << "  + D3DDEVCAPS_TEXTURESYSTEMMEMORY is supported" << std::endl;
             else
                 std::cout << "  - D3DDEVCAPS_TEXTURESYSTEMMEMORY is not supported" << std::endl;
 
-            if (caps5HAL.dwDevCaps & D3DDEVCAPS_TEXTUREVIDEOMEMORY)
+            if (caps3HAL.dwDevCaps & D3DDEVCAPS_TEXTUREVIDEOMEMORY)
                 std::cout << "  + D3DDEVCAPS_TEXTUREVIDEOMEMORY is supported" << std::endl;
             else
                 std::cout << "  - D3DDEVCAPS_TEXTUREVIDEOMEMORY is not supported" << std::endl;
 
-            if (caps5HAL.dwDevCaps & D3DDEVCAPS_TLVERTEXSYSTEMMEMORY)
+            if (caps3HAL.dwDevCaps & D3DDEVCAPS_TLVERTEXSYSTEMMEMORY)
                 std::cout << "  + D3DDEVCAPS_TLVERTEXSYSTEMMEMORY is supported" << std::endl;
             else
                 std::cout << "  - D3DDEVCAPS_TLVERTEXSYSTEMMEMORY is not supported" << std::endl;
 
-            if (caps5HAL.dwDevCaps & D3DDEVCAPS_TLVERTEXVIDEOMEMORY)
+            if (caps3HAL.dwDevCaps & D3DDEVCAPS_TLVERTEXVIDEOMEMORY)
                 std::cout << "  + D3DDEVCAPS_TLVERTEXVIDEOMEMORY is supported" << std::endl;
             else
                 std::cout << "  - D3DDEVCAPS_TLVERTEXVIDEOMEMORY is not supported" << std::endl;
 
             std::cout << std::endl << "Listing device capability limits:" << std::endl;
 
-            std::cout << format("  ~ dwMaxBufferSize: ", caps5HAL.dwMaxBufferSize) << std::endl;
-            std::cout << format("  ~ dwMaxVertexCount: ", caps5HAL.dwMaxVertexCount) << std::endl;
-            std::cout << format("  ~ dwMinTextureWidth: ", caps5HAL.dwMinTextureWidth) << std::endl;
-            std::cout << format("  ~ dwMinTextureHeight: ", caps5HAL.dwMinTextureHeight) << std::endl;
-            std::cout << format("  ~ dwMaxTextureWidth: ", caps5HAL.dwMaxTextureWidth) << std::endl;
-            std::cout << format("  ~ dwMaxTextureHeight: ", caps5HAL.dwMaxTextureHeight) << std::endl;
-            std::cout << format("  ~ dwMinStippleWidth: ", caps5HAL.dwMinStippleWidth) << std::endl;
-            std::cout << format("  ~ dwMinStippleHeight: ", caps5HAL.dwMinStippleHeight) << std::endl;
-            std::cout << format("  ~ dwMaxStippleWidth: ", caps5HAL.dwMaxStippleWidth) << std::endl;
-            std::cout << format("  ~ dwMaxStippleHeight: ", caps5HAL.dwMaxStippleHeight) << std::endl;
+            std::cout << format("  ~ dwMaxBufferSize: ", caps3HAL.dwMaxBufferSize) << std::endl;
+            std::cout << format("  ~ dwMaxVertexCount: ", caps3HAL.dwMaxVertexCount) << std::endl;
         }
 
         void prepare() {
             createDeviceWithFlags(IID_IDirect3DHALDevice, true);
 
-            // don't need any of these for 2D rendering
-            HRESULT status = m_device->SetRenderState(D3DRENDERSTATE_ZENABLE, D3DZB_FALSE);
+            D3DEXECUTEBUFFERDESC ebDesc = { };
+            ebDesc.dwSize = sizeof(D3DEXECUTEBUFFERDESC);
+            ebDesc.dwFlags = D3DDEB_BUFSIZE;
+            ebDesc.dwBufferSize = 1024;
+            HRESULT status = m_device->CreateExecuteBuffer(&ebDesc, &m_eb, nullptr);
             if (FAILED(status))
-                throw Error("Failed to set D3D5 render state for D3DRENDERSTATE_ZENABLE");
-            status = m_device->SetRenderState(D3DRENDERSTATE_CULLMODE, D3DCULL_NONE);
+                std::cout << "Failed to create D3D3 execute buffer" << std::endl;
+
+            ebDesc = { };
+            ebDesc.dwSize = sizeof(D3DEXECUTEBUFFERDESC);
+            status = m_eb->Lock(&ebDesc);
             if (FAILED(status))
-                throw Error("Failed to set D3D5 render state for D3DRENDERSTATE_CULLMODE");
-            status = m_device->SetRenderState(D3DRENDERSTATE_LIGHTING, FALSE);
+                throw Error("Failed to lock D3D3 execute buffer");
+
+            uint8_t *ptr = reinterpret_cast<uint8_t*>(ebDesc.lpData);
+
+            D3DINSTRUCTION* instruction = reinterpret_cast<D3DINSTRUCTION*>(ptr);
+            instruction->bOpcode = D3DOP_STATERENDER;
+            instruction->bSize = sizeof(D3DSTATE);
+            instruction->wCount = 1;
+            ptr += sizeof(D3DINSTRUCTION);
+            D3DSTATE* state = reinterpret_cast<D3DSTATE*>(ptr);
+            state->drstRenderStateType = D3DRENDERSTATE_CULLMODE;
+            state->dwArg[0] = D3DCULL_NONE;
+            ptr += sizeof(D3DSTATE);
+
+            instruction = reinterpret_cast<D3DINSTRUCTION*>(ptr);
+            instruction->bOpcode = D3DOP_PROCESSVERTICES;
+            instruction->bSize = sizeof(D3DPROCESSVERTICES);
+            instruction->wCount = 1;
+            ptr += sizeof(D3DINSTRUCTION);
+
+            D3DPROCESSVERTICES* pv = reinterpret_cast<D3DPROCESSVERTICES*>(ptr);
+            pv->dwFlags = D3DPROCESSVERTICES_COPY;
+            pv->wStart = 0;
+            pv->wDest = 0;
+            pv->dwCount = m_rgbVertices.size();
+            ptr += sizeof(D3DPROCESSVERTICES);
+
+            instruction = reinterpret_cast<D3DINSTRUCTION*>(ptr);
+            instruction->bOpcode = D3DOP_TRIANGLE;
+            instruction->bSize = sizeof(D3DTRIANGLE);
+            instruction->wCount = m_rgbVertices.size() / 3;
+            ptr += sizeof(D3DINSTRUCTION);
+
+            for (DWORD i = 0; i < instruction->wCount; i+=3) {
+                D3DTRIANGLE* t = reinterpret_cast<D3DTRIANGLE*>(ptr);
+                t->v1 = i;
+                t->v2 = i + 1;
+                t->v3 = i + 2;
+                t->wFlags = 0;
+                ptr += sizeof(D3DTRIANGLE);
+            }
+
+            instruction = reinterpret_cast<D3DINSTRUCTION*>(ptr);
+            instruction->bOpcode = D3DOP_EXIT;
+            instruction->bSize = 0;
+            instruction->wCount = 0;
+            ptr += sizeof(D3DINSTRUCTION);
+
+            D3DEXECUTEDATA executeData = { };
+            executeData.dwSize = sizeof(D3DEXECUTEDATA);
+            executeData.dwInstructionOffset = 0;
+            executeData.dwInstructionLength = static_cast<DWORD>(ptr - reinterpret_cast<uint8_t*>(ebDesc.lpData));
+            executeData.dwVertexOffset = static_cast<DWORD>(ptr - reinterpret_cast<uint8_t*>(ebDesc.lpData));
+            executeData.dwVertexCount = m_rgbVertices.size();
+            executeData.dwHVertexOffset = executeData.dwVertexOffset;
+
+            memcpy(ptr, m_rgbVertices.data(), m_rgbVerticesSize);
+            status = m_eb->Unlock();
             if (FAILED(status))
-                throw Error("Failed to set D3D5 render state for D3DRENDERSTATE_LIGHTING");
+                throw Error("Failed to unlock D3D3 execute buffer");
+
+            status = m_eb->SetExecuteData(&executeData);
+            if (FAILED(status))
+                throw Error("Failed to set D3D3 execute buffer data");
         }
 
         void render() {
             HRESULT status = m_viewport->Clear(0, NULL, D3DCLEAR_TARGET);
             if (FAILED(status))
-                throw Error("Failed to clear D3D5 viewport");
+                throw Error("Failed to clear D3D3 viewport");
             if (SUCCEEDED(m_device->BeginScene())) {
-                status = m_device->DrawPrimitive(D3DPT_TRIANGLELIST, D3DVT_TLVERTEX, m_rgbVertices.data(), m_rgbVerticesSize, 0);
+                status = m_device->Execute(m_eb.ptr(), m_viewport.ptr(), D3DEXECUTE_UNCLIPPED);
                 if (FAILED(status))
-                    throw Error("Failed to draw D3D5 triangle list");
+                    throw Error("Failed to draw D3D3 triangle list");
                 if (SUCCEEDED(m_device->EndScene())) {
                     status = m_primarySurf->Blt(&s_rect, m_rt.ptr(), NULL, DDBLT_WAIT, NULL);
                 } else {
-                    throw Error("Failed to end D3D5 scene");
+                    throw Error("Failed to end D3D3 scene");
                 }
             } else {
-                throw Error("Failed to begin D3D5 scene");
+                throw Error("Failed to begin D3D3 scene");
             }
         }
 
@@ -316,31 +354,27 @@ class RGBTriangle {
 
     private:
 
-        HRESULT createDeviceWithFlags(IID deviceIID,
+        inline void createDeviceWithFlags(IID deviceIID,
                                       bool throwErrorOnFail) {
             if (m_d3d == nullptr)
-                throw Error("The D3D5 interface hasn't been initialized");
+                throw Error("The D3D3 interface hasn't been initialized");
 
             if (m_rt == nullptr)
-                throw Error("The D3D5 render target hasn't been initialized");
+                throw Error("The D3D3 render target hasn't been initialized");
 
-            m_device = nullptr;
-
-            HRESULT status = m_d3d->CreateDevice(deviceIID, m_rt.ptr(), &m_device);
+            // Avoid casting to void** here, as it blows up during device tear-down
+            void* device = nullptr;
+            HRESULT status = m_rt->QueryInterface(deviceIID, &device);
             if (throwErrorOnFail && FAILED(status))
-                throw Error("Failed to create D3D5 device");
+                throw Error("Failed to create D3D3 device");
+
+            m_device = static_cast<IDirect3DDevice*>(device);
 
             if (m_device != nullptr) {
                 status = m_device->AddViewport(m_viewport.ptr());
                 if (FAILED(status))
-                    std::cout << "Failed to add D3D5 viewport" << std::endl;
-
-                status = m_device->SetCurrentViewport(m_viewport.ptr());
-                if (FAILED(status))
-                    std::cout << "Failed to set D3D5 viewport" << std::endl;
+                    std::cout << "Failed to add D3D3 viewport" << std::endl;
             }
-
-            return status;
         }
 
         static RECT                   s_rect;
@@ -349,20 +383,20 @@ class RGBTriangle {
 
         DWORD                         m_vendorID;
 
-        Com<IDirectDraw2>             m_ddraw;
-        Com<IDirect3D2>               m_d3d;
-        Com<IDirect3DDevice2>         m_device;
-        Com<IDirect3DViewport2>       m_viewport;
-        Com<IDirect3DVertexBuffer>    m_vb;
+        Com<IDirectDraw>              m_ddraw;
+        Com<IDirect3D>                m_d3d;
+        Com<IDirect3DDevice>          m_device;
+        Com<IDirect3DViewport>        m_viewport;
+        Com<IDirect3DExecuteBuffer>   m_eb;
 
         Com<IDirectDrawSurface>       m_primarySurf;
         Com<IDirectDrawSurface>       m_rt;
 
         // tailored for 1024x768 and the appearance of being centered
-        std::array<D3DTLVERTEX, 3>    m_rgbVertices = {{ { 60.0f, 625.0f, 0.5f, 1.0f, D3DCOLOR_XRGB(255, 255, 255), D3DCOLOR_XRGB(0, 0, 0), 0.0f, 0.0f},
-                                                         {350.0f,  45.0f, 0.5f, 1.0f, D3DCOLOR_XRGB(128, 128, 128), D3DCOLOR_XRGB(0, 0, 0), 0.0f, 0.0f},
-                                                         {640.0f, 625.0f, 0.5f, 1.0f, D3DCOLOR_XRGB(32, 32, 32), D3DCOLOR_XRGB(0, 0, 0), 0.0f, 0.0f} }};
-        const DWORD                   m_rgbVerticesSize = m_rgbVertices.size() * sizeof(RGBVERTEX);
+        std::array<D3DTLVERTEX, 3>    m_rgbVertices = {{ { 60.0f, 625.0f, 0.5f, 1.0f, D3DCOLOR_XRGB(0, 255, 255), D3DCOLOR_XRGB(0, 0, 0), 0.0f, 0.0f},
+                                                         {350.0f,  45.0f, 0.5f, 1.0f, D3DCOLOR_XRGB(255, 0, 255), D3DCOLOR_XRGB(0, 0, 0), 0.0f, 0.0f},
+                                                         {640.0f, 625.0f, 0.5f, 1.0f, D3DCOLOR_XRGB(255, 255, 0), D3DCOLOR_XRGB(0, 0, 0), 0.0f, 0.0f} }};
+        const DWORD                   m_rgbVerticesSize = m_rgbVertices.size() * sizeof(D3DTLVERTEX);
 
         UINT                          m_totalTests;
         UINT                          m_passedTests;
@@ -404,7 +438,7 @@ int main(int, char**) {
         rgbTriangle.listAdapterDisplayModes();
         rgbTriangle.listDeviceCapabilities();
 
-        // D3D5 triangle
+        // D3D3 triangle
         rgbTriangle.prepare();
 
         ShowWindow(hWnd, SW_SHOWDEFAULT);
