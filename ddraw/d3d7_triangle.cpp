@@ -10,7 +10,7 @@
 
 struct RGBVERTEX {
     FLOAT x, y, z, rhw;
-    DWORD colour;
+    DWORD color;
 };
 
 #ifdef __CRT_UUID_DECL
@@ -105,8 +105,13 @@ class RGBTriangle {
             if (FAILED(status))
                 throw Error("Failed to create the clipper");
 
-            clipper->SetHWnd(0, m_hWnd);
-            m_primarySurf->SetClipper(clipper.ptr());
+            status = clipper->SetHWnd(0, m_hWnd);
+            if (FAILED(status))
+                throw Error("Failed to set the HWND");
+
+            status = m_primarySurf->SetClipper(clipper.ptr());
+            if (FAILED(status))
+                throw Error("Failed to set the clipper");
 
             // D3D7 Interface
             status = m_ddraw->QueryInterface(__uuidof(IDirect3D7), reinterpret_cast<void**>(&m_d3d));
@@ -394,7 +399,7 @@ class RGBTriangle {
             D3DVERTEXBUFFERDESC descVB = { };
             descVB.dwSize = sizeof(D3DVERTEXBUFFERDESC);
             descVB.dwFVF = RGBT_FVF_CODES;
-            descVB.dwNumVertices = m_rgbVerticesSize;
+            descVB.dwNumVertices = m_rgbVertices.size();
             status = m_d3d->CreateVertexBuffer(&descVB, &m_vb, 0);
             if (FAILED(status))
                 throw Error("Failed to create D3D7 vertex buffer");
@@ -413,11 +418,12 @@ class RGBTriangle {
             if (FAILED(status))
                 throw Error("Failed to clear D3D7 viewport");
             if (SUCCEEDED(m_device->BeginScene())) {
-                status = m_device->DrawPrimitiveVB(D3DPT_TRIANGLELIST, m_vb.ptr(), 0, m_rgbVertices.size(), 0);
+                status = m_device->DrawPrimitiveVB(D3DPT_TRIANGLELIST, m_vb.ptr(), 0,
+                                                   m_rgbVertices.size(), D3DDP_DONOTCLIP);
                 if (FAILED(status))
                     throw Error("Failed to draw D3D7 triangle list");
                 if (SUCCEEDED(m_device->EndScene())) {
-                    status = m_primarySurf->Blt(&s_rect, m_rt.ptr(), NULL, DDBLT_WAIT, NULL);
+                    m_primarySurf->Blt(&s_rect, m_rt.ptr(), NULL, DDBLT_WAIT, NULL);
                 } else {
                     throw Error("Failed to end D3D7 scene");
                 }
@@ -499,7 +505,7 @@ int main(int, char**) {
     RegisterClassEx(&wc);
 
     HWND hWnd = CreateWindow(RGBTriangle::TRIANGLE_ID, RGBTriangle::TRIANGLE_TITLE,
-                             WS_OVERLAPPEDWINDOW, 50, 50,
+                             WS_OVERLAPPEDWINDOW, 25, 25,
                              RGBTriangle::WINDOW_WIDTH, RGBTriangle::WINDOW_HEIGHT,
                              GetDesktopWindow(), NULL, wc.hInstance, NULL);
 

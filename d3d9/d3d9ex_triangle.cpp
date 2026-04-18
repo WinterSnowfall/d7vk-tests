@@ -11,7 +11,7 @@
 
 struct RGBVERTEX {
     FLOAT x, y, z, rhw;
-    DWORD colour;
+    DWORD color;
 };
 
 #define RGBT_FVF_CODES (D3DFVF_XYZRHW | D3DFVF_DIFFUSE)
@@ -2057,7 +2057,7 @@ int main(int, char**) {
     RegisterClassEx(&wc);
 
     HWND hWnd = CreateWindow(RGBTriangle::TRIANGLE_ID, RGBTriangle::TRIANGLE_TITLE,
-                             WS_OVERLAPPEDWINDOW, 50, 50,
+                             WS_OVERLAPPEDWINDOW, 25, 25,
                              RGBTriangle::WINDOW_WIDTH, RGBTriangle::WINDOW_HEIGHT,
                              GetDesktopWindow(), NULL, wc.hInstance, NULL);
 

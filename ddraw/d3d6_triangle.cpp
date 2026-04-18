@@ -10,7 +10,7 @@
 
 struct RGBVERTEX {
     FLOAT x, y, z, rhw;
-    DWORD colour;
+    DWORD color;
 };
 
 #ifdef __CRT_UUID_DECL
@@ -98,8 +98,13 @@ class RGBTriangle {
             if (FAILED(status))
                 throw Error("Failed to create the clipper");
 
-            clipper->SetHWnd(0, m_hWnd);
-            m_primarySurf->SetClipper(clipper.ptr());
+            status = clipper->SetHWnd(0, m_hWnd);
+            if (FAILED(status))
+                throw Error("Failed to set the HWND");
+
+            status = m_primarySurf->SetClipper(clipper.ptr());
+            if (FAILED(status))
+                throw Error("Failed to set the clipper");
 
             // D3D6 Interface
             status = m_ddraw->QueryInterface(__uuidof(IDirect3D3), reinterpret_cast<void**>(&m_d3d));
@@ -107,19 +112,9 @@ class RGBTriangle {
                 throw Error("Failed to create D3D6 interface");
 
             // D3D6 Viewport
-            D3DVIEWPORT2 viewPortData2 = { };
-            viewPortData2.dwSize       = sizeof(D3DVIEWPORT2);
-            viewPortData2.dwWidth      = WINDOW_WIDTH;
-            viewPortData2.dwHeight     = WINDOW_HEIGHT;
-            viewPortData2.dvClipX      = -1.0f;
-            viewPortData2.dvClipWidth  = 2.0f;
-            viewPortData2.dvClipY      = 1.0f;
-            viewPortData2.dvClipHeight = 2.0f;
-            viewPortData2.dvMaxZ       = 1.0f;
             status = m_d3d->CreateViewport(&m_viewport, NULL);
             if (FAILED(status))
                 throw Error("Failed to create D3D6 viewport");
-            m_viewport->SetViewport2(&viewPortData2);
 
             createDeviceWithFlags(IID_IDirect3DHALDevice, true);
         }
@@ -287,9 +282,6 @@ class RGBTriangle {
             status = m_device->SetRenderState(D3DRENDERSTATE_CULLMODE, D3DCULL_NONE);
             if (FAILED(status))
                 throw Error("Failed to set D3D6 render state for D3DRENDERSTATE_CULLMODE");
-            status = m_device->SetRenderState(D3DRENDERSTATE_LIGHTING, FALSE);
-            if (FAILED(status))
-                throw Error("Failed to set D3D6 render state for D3DRENDERSTATE_LIGHTING");
 
             // Vertex Buffer
             void* vertices = nullptr;
@@ -297,7 +289,7 @@ class RGBTriangle {
             D3DVERTEXBUFFERDESC descVB = { };
             descVB.dwSize = sizeof(D3DVERTEXBUFFERDESC);
             descVB.dwFVF = RGBT_FVF_CODES;
-            descVB.dwNumVertices = m_rgbVerticesSize;
+            descVB.dwNumVertices = m_rgbVertices.size();
             status = m_d3d->CreateVertexBuffer(&descVB, &m_vb, 0, NULL);
             if (FAILED(status))
                 throw Error("Failed to create D3D6 vertex buffer");
@@ -316,11 +308,12 @@ class RGBTriangle {
             if (FAILED(status))
                 throw Error("Failed to clear D3D6 viewport");
             if (SUCCEEDED(m_device->BeginScene())) {
-                status = m_device->DrawPrimitiveVB(D3DPT_TRIANGLELIST, m_vb.ptr(), 0, m_rgbVertices.size(), 0);
+                status = m_device->DrawPrimitiveVB(D3DPT_TRIANGLELIST, m_vb.ptr(), 0,
+                                                   m_rgbVertices.size(), D3DDP_DONOTCLIP);
                 if (FAILED(status))
                     throw Error("Failed to draw D3D6 triangle list");
                 if (SUCCEEDED(m_device->EndScene())) {
-                    status = m_primarySurf->Blt(&s_rect, m_rt.ptr(), NULL, DDBLT_WAIT, NULL);
+                    m_primarySurf->Blt(&s_rect, m_rt.ptr(), NULL, DDBLT_WAIT, NULL);
                 } else {
                     throw Error("Failed to end D3D6 scene");
                 }
@@ -346,20 +339,41 @@ class RGBTriangle {
             if (m_rt == nullptr)
                 throw Error("The D3D6 render target hasn't been initialized");
 
+            HRESULT status;
+
+            if (m_device != nullptr) {
+                status = m_device->DeleteViewport(m_viewport.ptr());
+                if (throwErrorOnFail && FAILED(status))
+                    throw Error("Failed to delete D3D6 viewport");
+            }
+
             m_device = nullptr;
 
-            HRESULT status = m_d3d->CreateDevice(deviceIID, m_rt.ptr(), &m_device, NULL);
+            status = m_d3d->CreateDevice(deviceIID, m_rt.ptr(), &m_device, NULL);
             if (throwErrorOnFail && FAILED(status))
                 throw Error("Failed to create D3D6 device");
 
             if (m_device != nullptr) {
                 status = m_device->AddViewport(m_viewport.ptr());
-                if (FAILED(status))
-                    std::cout << "Failed to add D3D6 viewport" << std::endl;
+                if (throwErrorOnFail && FAILED(status))
+                    throw Error("Failed to add D3D6 viewport");
+
+                D3DVIEWPORT2 viewPortData2 = { };
+                viewPortData2.dwSize       = sizeof(D3DVIEWPORT2);
+                viewPortData2.dwWidth      = WINDOW_WIDTH;
+                viewPortData2.dwHeight     = WINDOW_HEIGHT;
+                viewPortData2.dvClipX      = -1.0f;
+                viewPortData2.dvClipWidth  = 2.0f;
+                viewPortData2.dvClipY      = 1.0f;
+                viewPortData2.dvClipHeight = 2.0f;
+                viewPortData2.dvMaxZ       = 1.0f;
+                status = m_viewport->SetViewport2(&viewPortData2);
+                if (throwErrorOnFail && FAILED(status))
+                    throw Error("Failed to set D3D6 viewport");
 
                 status = m_device->SetCurrentViewport(m_viewport.ptr());
-                if (FAILED(status))
-                    std::cout << "Failed to set D3D6 viewport" << std::endl;
+                if (throwErrorOnFail && FAILED(status))
+                    throw Error("Failed to set curre tD3D6 viewport");
             }
 
             return status;
@@ -413,7 +427,7 @@ int main(int, char**) {
     RegisterClassEx(&wc);
 
     HWND hWnd = CreateWindow(RGBTriangle::TRIANGLE_ID, RGBTriangle::TRIANGLE_TITLE,
-                             WS_OVERLAPPEDWINDOW, 50, 50,
+                             WS_OVERLAPPEDWINDOW, 25, 25,
                              RGBTriangle::WINDOW_WIDTH, RGBTriangle::WINDOW_HEIGHT,
                              GetDesktopWindow(), NULL, wc.hInstance, NULL);
 

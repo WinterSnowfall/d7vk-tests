@@ -30,13 +30,6 @@ typedef struct _D3DDeviceDesc2 {
         DWORD            dwMinStippleHeight,dwMaxStippleHeight;
 } D3DDEVICEDESC2;
 
-struct RGBVERTEX {
-    FLOAT x, y, z;
-    DWORD colour;
-    DWORD specular;
-    FLOAT u, v;
-};
-
 #ifdef __CRT_UUID_DECL
 __CRT_UUID_DECL(IDirectDraw2, 0xB3A6F3E0, 0x2B43, 0x11CF, 0xA2, 0xDE, 0x00, 0xAA, 0x00, 0xB9, 0x33, 0x56);
 __CRT_UUID_DECL(IDirect3D2,   0x6AAE1EC1, 0x662A, 0x11D0, 0x88, 0x9D, 0x00, 0xAA, 0x00, 0xBB, 0xB7, 0x6A);
@@ -121,8 +114,13 @@ class RGBTriangle {
             if (FAILED(status))
                 throw Error("Failed to create the clipper");
 
-            clipper->SetHWnd(0, m_hWnd);
-            m_primarySurf->SetClipper(clipper.ptr());
+            status = clipper->SetHWnd(0, m_hWnd);
+            if (FAILED(status))
+                throw Error("Failed to set the HWND");
+
+            status = m_primarySurf->SetClipper(clipper.ptr());
+            if (FAILED(status))
+                throw Error("Failed to set the clipper");
 
             // D3D5 Interface
             status = m_ddraw->QueryInterface(__uuidof(IDirect3D2), reinterpret_cast<void**>(&m_d3d));
@@ -130,19 +128,9 @@ class RGBTriangle {
                 throw Error("Failed to create D3D5 interface");
 
             // D3D5 Viewport
-            D3DVIEWPORT2 viewPortData2 = { };
-            viewPortData2.dwSize       = sizeof(D3DVIEWPORT2);
-            viewPortData2.dwWidth      = WINDOW_WIDTH;
-            viewPortData2.dwHeight     = WINDOW_HEIGHT;
-            viewPortData2.dvClipX      = -1.0f;
-            viewPortData2.dvClipWidth  = 2.0f;
-            viewPortData2.dvClipY      = 1.0f;
-            viewPortData2.dvClipHeight = 2.0f;
-            viewPortData2.dvMaxZ       = 1.0f;
             status = m_d3d->CreateViewport(&m_viewport, NULL);
             if (FAILED(status))
                 throw Error("Failed to create D3D5 viewport");
-            m_viewport->SetViewport2(&viewPortData2);
 
             createDeviceWithFlags(IID_IDirect3DHALDevice, true);
         }
@@ -284,9 +272,6 @@ class RGBTriangle {
             status = m_device->SetRenderState(D3DRENDERSTATE_CULLMODE, D3DCULL_NONE);
             if (FAILED(status))
                 throw Error("Failed to set D3D5 render state for D3DRENDERSTATE_CULLMODE");
-            status = m_device->SetRenderState(D3DRENDERSTATE_LIGHTING, FALSE);
-            if (FAILED(status))
-                throw Error("Failed to set D3D5 render state for D3DRENDERSTATE_LIGHTING");
         }
 
         void render() {
@@ -294,11 +279,12 @@ class RGBTriangle {
             if (FAILED(status))
                 throw Error("Failed to clear D3D5 viewport");
             if (SUCCEEDED(m_device->BeginScene())) {
-                status = m_device->DrawPrimitive(D3DPT_TRIANGLELIST, D3DVT_TLVERTEX, m_rgbVertices.data(), m_rgbVerticesSize, 0);
+                status = m_device->DrawPrimitive(D3DPT_TRIANGLELIST, D3DVT_TLVERTEX, m_rgbVertices.data(),
+                                                 m_rgbVertices.size(), D3DDP_DONOTCLIP);
                 if (FAILED(status))
                     throw Error("Failed to draw D3D5 triangle list");
                 if (SUCCEEDED(m_device->EndScene())) {
-                    status = m_primarySurf->Blt(&s_rect, m_rt.ptr(), NULL, DDBLT_WAIT, NULL);
+                    m_primarySurf->Blt(&s_rect, m_rt.ptr(), NULL, DDBLT_WAIT, NULL);
                 } else {
                     throw Error("Failed to end D3D5 scene");
                 }
@@ -324,20 +310,41 @@ class RGBTriangle {
             if (m_rt == nullptr)
                 throw Error("The D3D5 render target hasn't been initialized");
 
+            HRESULT status;
+
+            if (m_device != nullptr) {
+                status = m_device->DeleteViewport(m_viewport.ptr());
+                if (throwErrorOnFail && FAILED(status))
+                    throw Error("Failed to delete D3D5 viewport");
+            }
+
             m_device = nullptr;
 
-            HRESULT status = m_d3d->CreateDevice(deviceIID, m_rt.ptr(), &m_device);
+            status = m_d3d->CreateDevice(deviceIID, m_rt.ptr(), &m_device);
             if (throwErrorOnFail && FAILED(status))
                 throw Error("Failed to create D3D5 device");
 
             if (m_device != nullptr) {
                 status = m_device->AddViewport(m_viewport.ptr());
-                if (FAILED(status))
-                    std::cout << "Failed to add D3D5 viewport" << std::endl;
+                if (throwErrorOnFail && FAILED(status))
+                    throw Error("Failed to add D3D5 viewport");
+
+                D3DVIEWPORT2 viewPortData2 = { };
+                viewPortData2.dwSize       = sizeof(D3DVIEWPORT2);
+                viewPortData2.dwWidth      = WINDOW_WIDTH;
+                viewPortData2.dwHeight     = WINDOW_HEIGHT;
+                viewPortData2.dvClipX      = -1.0f;
+                viewPortData2.dvClipWidth  = 2.0f;
+                viewPortData2.dvClipY      = 1.0f;
+                viewPortData2.dvClipHeight = 2.0f;
+                viewPortData2.dvMaxZ       = 1.0f;
+                status = m_viewport->SetViewport2(&viewPortData2);
+                if (throwErrorOnFail && FAILED(status))
+                    throw Error("Failed to set D3D5 viewport");
 
                 status = m_device->SetCurrentViewport(m_viewport.ptr());
-                if (FAILED(status))
-                    std::cout << "Failed to set D3D5 viewport" << std::endl;
+                if (throwErrorOnFail && FAILED(status))
+                    throw Error("Failed to set current D3D5 viewport");
             }
 
             return status;
@@ -362,7 +369,6 @@ class RGBTriangle {
         std::array<D3DTLVERTEX, 3>    m_rgbVertices = {{ { 60.0f, 625.0f, 0.5f, 1.0f, D3DCOLOR_XRGB(255, 255, 255), D3DCOLOR_XRGB(0, 0, 0), 0.0f, 0.0f},
                                                          {350.0f,  45.0f, 0.5f, 1.0f, D3DCOLOR_XRGB(128, 128, 128), D3DCOLOR_XRGB(0, 0, 0), 0.0f, 0.0f},
                                                          {640.0f, 625.0f, 0.5f, 1.0f, D3DCOLOR_XRGB(32, 32, 32), D3DCOLOR_XRGB(0, 0, 0), 0.0f, 0.0f} }};
-        const DWORD                   m_rgbVerticesSize = m_rgbVertices.size() * sizeof(RGBVERTEX);
 
         UINT                          m_totalTests;
         UINT                          m_passedTests;
@@ -391,7 +397,7 @@ int main(int, char**) {
     RegisterClassEx(&wc);
 
     HWND hWnd = CreateWindow(RGBTriangle::TRIANGLE_ID, RGBTriangle::TRIANGLE_TITLE,
-                             WS_OVERLAPPEDWINDOW, 50, 50,
+                             WS_OVERLAPPEDWINDOW, 25, 25,
                              RGBTriangle::WINDOW_WIDTH, RGBTriangle::WINDOW_HEIGHT,
                              GetDesktopWindow(), NULL, wc.hInstance, NULL);
 

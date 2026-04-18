@@ -101,8 +101,13 @@ class RGBTriangle {
             if (FAILED(status))
                 throw Error("Failed to create the clipper");
 
-            clipper->SetHWnd(0, m_hWnd);
-            m_primarySurf->SetClipper(clipper.ptr());
+            status = clipper->SetHWnd(0, m_hWnd);
+            if (FAILED(status))
+                throw Error("Failed to set the HWND");
+
+            status = m_primarySurf->SetClipper(clipper.ptr());
+            if (FAILED(status))
+                throw Error("Failed to set the clipper");
 
             // D3D3 Interface
             status = m_ddraw->QueryInterface(__uuidof(IDirect3D), reinterpret_cast<void**>(&m_d3d));
@@ -110,19 +115,14 @@ class RGBTriangle {
                 throw Error("Failed to create D3D3 interface");
 
             // D3D3 Viewport
-            D3DVIEWPORT viewPortData = { };
-            viewPortData.dwSize   = sizeof(D3DVIEWPORT);
-            viewPortData.dwWidth  = WINDOW_WIDTH;
-            viewPortData.dwHeight = WINDOW_HEIGHT;
-            viewPortData.dvScaleX = 1.0f;
-            viewPortData.dvScaleY = 1.0f;
-            viewPortData.dvMaxX   = 1.0f;
-            viewPortData.dvMaxY   = 1.0f;
-            viewPortData.dvMaxZ   = 1.0f;
             status = m_d3d->CreateViewport(&m_viewport, NULL);
             if (FAILED(status))
                 throw Error("Failed to create D3D3 viewport");
-            m_viewport->SetViewport(&viewPortData);
+
+            // D3D3 Material
+            status = m_d3d->CreateMaterial(&m_material, NULL);
+            if (FAILED(status))
+                throw Error("Failed to create D3D3 material");
 
             createDeviceWithFlags(IID_IDirect3DHALDevice, true);
         }
@@ -246,6 +246,39 @@ class RGBTriangle {
             std::cout << format("  ~ dwMaxVertexCount: ", caps3HAL.dwMaxVertexCount) << std::endl;
         }
 
+        void startTests() {
+            m_totalTests  = 0;
+            m_passedTests = 0;
+
+            std::cout << std::endl << "Running D3D3 tests:" << std::endl;
+        }
+
+        // Test D3D3 interface availability from the device
+        void testD3D3Interface() {
+            createDeviceWithFlags(IID_IDirect3DHALDevice, true);
+
+            m_totalTests++;
+
+            Com<IDirect3D> d3d3Intf;
+            Com<IDirect3DViewport> viewport;
+
+            HRESULT status1 = m_device->GetDirect3D(&d3d3Intf);
+            HRESULT status2 = DDERR_NOTFOUND;
+            if (SUCCEEDED(status1))
+                status2 = d3d3Intf->CreateViewport(&viewport, NULL);
+
+            if (FAILED(status1) || FAILED(status2)) {
+                std::cout << "  - The D3D3 interface test has failed" << std::endl;
+            } else {
+                m_passedTests++;
+                std::cout << "  + The D3D3 interface test has succeded" << std::endl;
+            }
+        }
+
+        void printTestResults() {
+            std::cout << std::endl << format("Passed ", m_passedTests, "/", m_totalTests, " tests") << std::endl;
+        }
+
         void prepare() {
             createDeviceWithFlags(IID_IDirect3DHALDevice, true);
 
@@ -276,6 +309,16 @@ class RGBTriangle {
             ptr += sizeof(D3DSTATE);
 
             instruction = reinterpret_cast<D3DINSTRUCTION*>(ptr);
+            instruction->bOpcode = D3DOP_STATERENDER;
+            instruction->bSize = sizeof(D3DSTATE);
+            instruction->wCount = 1;
+            ptr += sizeof(D3DINSTRUCTION);
+            state = reinterpret_cast<D3DSTATE*>(ptr);
+            state->drstRenderStateType = D3DRENDERSTATE_ZENABLE;
+            state->dwArg[0] = FALSE;
+            ptr += sizeof(D3DSTATE);
+
+            instruction = reinterpret_cast<D3DINSTRUCTION*>(ptr);
             instruction->bOpcode = D3DOP_PROCESSVERTICES;
             instruction->bSize = sizeof(D3DPROCESSVERTICES);
             instruction->wCount = 1;
@@ -294,7 +337,7 @@ class RGBTriangle {
             instruction->wCount = m_rgbVertices.size() / 3;
             ptr += sizeof(D3DINSTRUCTION);
 
-            for (DWORD i = 0; i < instruction->wCount; i+=3) {
+            for (DWORD i = 0; i < m_rgbVertices.size(); i+=3) {
                 D3DTRIANGLE* t = reinterpret_cast<D3DTRIANGLE*>(ptr);
                 t->v1 = i;
                 t->v2 = i + 1;
@@ -336,7 +379,7 @@ class RGBTriangle {
                 if (FAILED(status))
                     throw Error("Failed to draw D3D3 triangle list");
                 if (SUCCEEDED(m_device->EndScene())) {
-                    status = m_primarySurf->Blt(&s_rect, m_rt.ptr(), NULL, DDBLT_WAIT, NULL);
+                    m_primarySurf->Blt(&s_rect, m_rt.ptr(), NULL, DDBLT_WAIT, NULL);
                 } else {
                     throw Error("Failed to end D3D3 scene");
                 }
@@ -362,9 +405,19 @@ class RGBTriangle {
             if (m_rt == nullptr)
                 throw Error("The D3D3 render target hasn't been initialized");
 
+            HRESULT status;
+
+            // If this isn't done before device destruction, the viewport will later
+            // fail attachment to the new device on native Windows XP...
+            if (m_device != nullptr) {
+                status = m_device->DeleteViewport(m_viewport.ptr());
+                if (throwErrorOnFail && FAILED(status))
+                    throw Error("Failed to delete D3D3 viewport");
+            }
+
             // Avoid casting to void** here, as it blows up during device tear-down
             void* device = nullptr;
-            HRESULT status = m_rt->QueryInterface(deviceIID, &device);
+            status = m_rt->QueryInterface(deviceIID, &device);
             if (throwErrorOnFail && FAILED(status))
                 throw Error("Failed to create D3D3 device");
 
@@ -372,8 +425,37 @@ class RGBTriangle {
 
             if (m_device != nullptr) {
                 status = m_device->AddViewport(m_viewport.ptr());
-                if (FAILED(status))
-                    std::cout << "Failed to add D3D3 viewport" << std::endl;
+                if (throwErrorOnFail && FAILED(status))
+                    throw Error("Failed to add D3D3 viewport");
+
+                D3DVIEWPORT viewPortData = { };
+                viewPortData.dwSize   = sizeof(D3DVIEWPORT);
+                viewPortData.dwWidth  = WINDOW_WIDTH;
+                viewPortData.dwHeight = WINDOW_HEIGHT;
+                viewPortData.dvScaleX = static_cast<float>(WINDOW_WIDTH) / 2.0f;
+                viewPortData.dvScaleY = static_cast<float>(WINDOW_HEIGHT) / 2.0f;
+                viewPortData.dvMaxX   = WINDOW_WIDTH;
+                viewPortData.dvMaxY   = WINDOW_HEIGHT;
+                viewPortData.dvMaxZ   = 1.0f;
+
+                status = m_viewport->SetViewport(&viewPortData);
+                if (throwErrorOnFail && FAILED(status))
+                    throw Error("Failed to set D3D3 viewport");
+
+                D3DMATERIAL mat = { };
+                mat.dwSize = sizeof(D3DMATERIAL);
+                status = m_material->SetMaterial(&mat);
+                if (throwErrorOnFail && FAILED(status))
+                    throw Error("Failed to set D3D3 material");
+
+                D3DMATERIALHANDLE handle;
+                status = m_material->GetHandle(m_device.ptr(), &handle);
+                if (throwErrorOnFail && FAILED(status))
+                    throw Error("Failed to get D3D3 material handle");
+
+                status = m_viewport->SetBackground(handle);
+                if (throwErrorOnFail && FAILED(status))
+                    throw Error("Failed to set D3D3 viewport handle");
             }
         }
 
@@ -387,6 +469,7 @@ class RGBTriangle {
         Com<IDirect3D>                m_d3d;
         Com<IDirect3DDevice>          m_device;
         Com<IDirect3DViewport>        m_viewport;
+        Com<IDirect3DMaterial>        m_material;
         Com<IDirect3DExecuteBuffer>   m_eb;
 
         Com<IDirectDrawSurface>       m_primarySurf;
@@ -425,7 +508,7 @@ int main(int, char**) {
     RegisterClassEx(&wc);
 
     HWND hWnd = CreateWindow(RGBTriangle::TRIANGLE_ID, RGBTriangle::TRIANGLE_TITLE,
-                             WS_OVERLAPPEDWINDOW, 50, 50,
+                             WS_OVERLAPPEDWINDOW, 25, 25,
                              RGBTriangle::WINDOW_WIDTH, RGBTriangle::WINDOW_HEIGHT,
                              GetDesktopWindow(), NULL, wc.hInstance, NULL);
 
@@ -437,6 +520,11 @@ int main(int, char**) {
         // list various D3D Device stats
         rgbTriangle.listAdapterDisplayModes();
         rgbTriangle.listDeviceCapabilities();
+
+        // run D3D Device tests
+        rgbTriangle.startTests();
+        rgbTriangle.testD3D3Interface();
+        rgbTriangle.printTestResults();
 
         // D3D3 triangle
         rgbTriangle.prepare();
