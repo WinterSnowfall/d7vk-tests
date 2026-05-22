@@ -981,6 +981,45 @@ class RGBTriangle {
             std::cout << format("  ~ MaxPixelShader30InstructionSlots: ", caps9.MaxPixelShader30InstructionSlots) << std::endl;
         }
 
+        void listDepthFormatCubeTextureSupport() {
+            resetOrRecreateDevice();
+
+            std::map<D3DFORMAT, char const*> dsFormats = { {D3DFMT_D16,           "D3DFMT_D16"},
+                                                           {D3DFMT_D16_LOCKABLE,  "D3DFMT_D16_LOCKABLE"},
+                                                           {D3DFMT_D24X8,         "D3DFMT_D24X8"},
+                                                           {D3DFMT_D24S8,         "D3DFMT_D24S8"},
+                                                           {D3DFMT_D24X4S4,       "D3DFMT_D24X4S4"},
+                                                           {D3DFMT_D32,           "D3DFMT_D32"},
+                                                           {D3DFMT_D15S1,         "D3DFMT_D15S1"},
+                                                           {D3DFMT_D32F_LOCKABLE, "D3DFMT_D32F_LOCKABLE"},
+                                                           {D3DFMT_D24FS8,        "D3DFMT_D24FS8"},
+                                                           {D3DFMT_D32_LOCKABLE,  "D3DFMT_D32_LOCKABLE"},
+                                                           {D3DFMT_S8_LOCKABLE,   "D3DFMT_S8_LOCKABLE"} };
+
+            std::map<D3DFORMAT, char const*>::iterator dsFormatIter;
+            Com<IDirect3DCubeTexture9> cubeText;
+
+            std::cout << std::endl << "Listing Cube Texture depth formats support:" << std::endl;
+
+            for (dsFormatIter = dsFormats.begin(); dsFormatIter != dsFormats.end(); ++dsFormatIter) {
+                D3DFORMAT surfaceFormat = dsFormatIter->first;
+
+                HRESULT status = m_d3d->CheckDeviceFormat(0, D3DDEVTYPE_HAL, m_pp.BackBufferFormat,
+                                                          0, D3DRTYPE_CUBETEXTURE, surfaceFormat);
+
+                HRESULT statusCreate = m_device->CreateCubeTexture(256, 1, 0, surfaceFormat,
+                                                                   D3DPOOL_DEFAULT, &cubeText, NULL);
+
+                if (SUCCEEDED(statusCreate)) {
+                    std::cout << format("  + The ", dsFormatIter->second , " format test is supported (CreateCubeTexture)") << std::endl;
+                } else if (SUCCEEDED(status)) {
+                    std::cout << format("  ~ The ", dsFormatIter->second , " format test is supported (CheckDeviceFormat)") << std::endl;
+                } else {
+                    std::cout << format("  - The ", dsFormatIter->second ," format test isn't supported") << std::endl;
+                }
+            }
+        }
+
         void listVCacheQueryResult() {
             resetOrRecreateDevice();
 
@@ -2135,6 +2174,7 @@ int main(int, char**) {
         rgbTriangle.listMultisampleSupport(TRUE);
         rgbTriangle.listVendorFormatHacksSupport();
         rgbTriangle.listDeviceCapabilities();
+        rgbTriangle.listDepthFormatCubeTextureSupport();
         rgbTriangle.listVCacheQueryResult();
         rgbTriangle.listAvailableTextureMemory();
 
