@@ -87,8 +87,6 @@ class RGBTriangle {
             if (FAILED(status))
                 throw Error("Failed to get D3D8 adapter identifier");
 
-            m_vendorID = adapterId.VendorId;
-
             std::cout << format("Using adapter: ", adapterId.Description) << std::endl;
 
             // DWORD to hex printout
@@ -102,7 +100,7 @@ class RGBTriangle {
             std::cout << format("  ~ Driver: ", adapterId.Driver) << std::endl;
 
             // NVIDIA stores the driver version in the lower half of the lower DWORD
-            if (m_vendorID == uint32_t(0x10de)) {
+            if (adapterId.VendorId == uint32_t(0x10de)) {
                 // Newer drivers will also spill over into the upper half
                 DWORD driverVersionHigh = HIWORD(adapterId.DriverVersion.LowPart);
                 DWORD driverVersionLow  = LOWORD(adapterId.DriverVersion.LowPart);
@@ -1772,6 +1770,47 @@ class RGBTriangle {
             }
         }
 
+        // Test setting various invalid light types
+        void testSetInvalidLightType() {
+            resetOrRecreateDevice();
+
+            D3DLIGHT8 validLight = { };
+            validLight.Type         = D3DLIGHT_POINT;
+            validLight.Diffuse.r    = 1.0f;
+            validLight.Diffuse.g    = 1.0f;
+            validLight.Diffuse.b    = 1.0f;
+            validLight.Ambient.r    = 1.0f;
+            validLight.Ambient.g    = 1.0f;
+            validLight.Ambient.b    = 1.0f;
+            validLight.Specular.r   = 1.0f;
+            validLight.Specular.g   = 1.0f;
+            validLight.Specular.b   = 1.0f;
+            validLight.Position.x   = 0.0f;
+            validLight.Position.y   = 1000.0f;
+            validLight.Position.z   = -100.0f;
+            validLight.Attenuation0 = 1.0f;
+            validLight.Range        = 1000.0f;
+            D3DLIGHT8 invalidLight = { };
+            invalidLight.Type = D3DLIGHTTYPE(0);
+            D3DLIGHT8 invalidLight2 = { };
+            invalidLight2.Type = D3DLIGHTTYPE(4);
+            D3DLIGHT8 invalidLight3 = { };
+            invalidLight2.Type = D3DLIGHTTYPE(6);
+
+            m_totalTests++;
+            HRESULT statusVL  = m_device->SetLight(0, &validLight);
+            HRESULT statusIL  = m_device->SetLight(0, &invalidLight);
+            HRESULT statusIL2 = m_device->SetLight(0, &invalidLight2);
+            HRESULT statusIL3 = m_device->SetLight(0, &invalidLight3);
+
+            if (SUCCEEDED(statusVL) && SUCCEEDED(statusIL) && SUCCEEDED(statusIL2) && SUCCEEDED(statusIL3)) {
+                m_passedTests++;
+                std::cout << "  + The invalid light type test has passed" << std::endl;
+            } else {
+                std::cout << "  - The invalid light type test has failed" << std::endl;
+            }
+        }
+
         // Viewport adjustment with smaller render target test
         void testViewportAdjustmentWithSmallerRT() {
             resetOrRecreateDevice();
@@ -2412,8 +2451,6 @@ class RGBTriangle {
 
         HWND                          m_hWnd;
 
-        DWORD                         m_vendorID;
-
         Com<IDirect3D8>               m_d3d;
         Com<IDirect3DDevice8>         m_device;
         Com<IDirect3DVertexBuffer8>   m_vb;
@@ -2502,6 +2539,7 @@ int main(int, char**) {
         //rgbTriangle.testSetIndicesWithUINTBVI();
         rgbTriangle.testRenderStateZVisible();
         rgbTriangle.testInvalidViewports();
+        rgbTriangle.testSetInvalidLightType();
         rgbTriangle.testViewportAdjustmentWithSmallerRT();
         rgbTriangle.testGetRenderTargetWithoutEADS();
         rgbTriangle.testPointSizeMinRSDefaultValue();

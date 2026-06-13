@@ -31,6 +31,7 @@ typedef struct _D3DDeviceDesc2 {
 } D3DDEVICEDESC2;
 
 #ifdef __CRT_UUID_DECL
+__CRT_UUID_DECL(IDirectDraw4, 0x9C59509A, 0x39BD, 0x11D1, 0x8C, 0x4A, 0x00, 0xC0, 0x4F, 0xD9, 0x30, 0xC5);
 __CRT_UUID_DECL(IDirectDraw2, 0xB3A6F3E0, 0x2B43, 0x11CF, 0xA2, 0xDE, 0x00, 0xAA, 0x00, 0xB9, 0x33, 0x56);
 __CRT_UUID_DECL(IDirect3D2,   0x6AAE1EC1, 0x662A, 0x11D0, 0x88, 0x9D, 0x00, 0xAA, 0x00, 0xBB, 0xB7, 0x6A);
 #elif defined(_MSC_VER)
@@ -86,9 +87,56 @@ class RGBTriangle {
             if (FAILED(status))
                 throw Error("Failed to create DDraw2 interface");
 
+            Com<IDirectDraw4> ddrawDevIdtf;
+            // DDraw4 Interface
+            status = ddrawBase->QueryInterface(__uuidof(IDirectDraw4), reinterpret_cast<void**>(&ddrawDevIdtf));
+            if (FAILED(status))
+                throw Error("Failed to create DDraw4 interface");
+
             status = m_ddraw->SetCooperativeLevel(m_hWnd, DDSCL_NORMAL);
             if (FAILED(status))
                 throw Error("Failed to set cooperative level");
+
+            // Use DDraw4 to get the device identifier
+            DDDEVICEIDENTIFIER deviceIdtf = { };
+            status = ddrawDevIdtf->GetDeviceIdentifier(&deviceIdtf, 0);
+            if (FAILED(status))
+                throw Error("Failed to get D3D5 device identifier");
+
+            std::cout << format("Using adapter: ", deviceIdtf.szDescription) << std::endl;
+
+            // DWORD to hex printout
+            char vendorID[16];
+            char deviceID[16];
+            sprintf(vendorID, "VendorId: %04lx", deviceIdtf.dwVendorId);
+            sprintf(deviceID, "DeviceId: %04lx", deviceIdtf.dwDeviceId);
+            std::cout << "  ~ " << vendorID << std::endl;
+            std::cout << "  ~ " << deviceID << std::endl;
+
+            // Note: driver versions aren't reported by any Windows XP native drivers on DDraw
+            std::cout << format("  ~ Driver: ", deviceIdtf.szDriver) << std::endl;
+
+            // NVIDIA stores the driver version in the lower half of the lower DWORD
+            if (deviceIdtf.dwVendorId == uint32_t(0x10de)) {
+                // Newer drivers will also spill over into the upper half
+                DWORD driverVersionHigh = HIWORD(deviceIdtf.liDriverVersion.LowPart);
+                DWORD driverVersionLow  = LOWORD(deviceIdtf.liDriverVersion.LowPart);
+                DWORD majorVersion = driverVersionLow / 100;
+                // Might want to revisit this cursed logic, but it should work fine for now
+                if (driverVersionHigh >= 15 && driverVersionLow < 10000)
+                    majorVersion += (driverVersionHigh % 10) * 100;
+                DWORD minorVersion = driverVersionLow % 100;
+                std::cout << format("  ~ Version: ", majorVersion, ".", minorVersion) << std::endl;
+            }
+            // for other vendors simply list the entire DriverVersion long int
+            else {
+                DWORD product = HIWORD(deviceIdtf.liDriverVersion.HighPart);
+                DWORD version = LOWORD(deviceIdtf.liDriverVersion.HighPart);
+                DWORD subVersion = HIWORD(deviceIdtf.liDriverVersion.LowPart);
+                DWORD build = LOWORD(deviceIdtf.liDriverVersion.LowPart);
+                std::cout << format("  ~ Version: ", product, ".", version, ".",
+                    subVersion, ".", build) << std::endl;
+            }
 
             DDSURFACEDESC desc = { };
             desc.dwSize = sizeof(DDSURFACEDESC);
@@ -203,6 +251,16 @@ class RGBTriangle {
             else
                 std::cout << "  - D3DDEVCAPS_HWTRANSFORMANDLIGHT is not supported" << std::endl;
 
+            if (caps5HAL.dwDevCaps & D3DDEVCAPS_DRAWPRIMITIVES2)
+                std::cout << "  + D3DDEVCAPS_DRAWPRIMITIVES2 is supported" << std::endl;
+            else
+                std::cout << "  - D3DDEVCAPS_DRAWPRIMITIVES2 is not supported" << std::endl;
+
+            if (caps5HAL.dwDevCaps & D3DDEVCAPS_DRAWPRIMITIVES2EX)
+                std::cout << "  + D3DDEVCAPS_DRAWPRIMITIVES2EX is supported" << std::endl;
+            else
+                std::cout << "  - D3DDEVCAPS_DRAWPRIMITIVES2EX is not supported" << std::endl;
+
             if (caps5HAL.dwDevCaps & D3DDEVCAPS_SEPARATETEXTUREMEMORIES)
                 std::cout << "  + D3DDEVCAPS_SEPARATETEXTUREMEMORIES is supported" << std::endl;
             else
@@ -248,6 +306,11 @@ class RGBTriangle {
             else
                 std::cout << "  - D3DDEVCAPS_TLVERTEXVIDEOMEMORY is not supported" << std::endl;
 
+            if (caps5HAL.dpcTriCaps.dwRasterCaps & D3DPRASTERCAPS_WBUFFER)
+                std::cout << "  + D3DPRASTERCAPS_WBUFFER is supported" << std::endl;
+            else
+                std::cout << "  - D3DPRASTERCAPS_WBUFFER is not supported" << std::endl;
+
             std::cout << std::endl << "Listing device capability limits:" << std::endl;
 
             std::cout << format("  ~ dwMaxBufferSize: ", caps5HAL.dwMaxBufferSize) << std::endl;
@@ -260,6 +323,34 @@ class RGBTriangle {
             std::cout << format("  ~ dwMinStippleHeight: ", caps5HAL.dwMinStippleHeight) << std::endl;
             std::cout << format("  ~ dwMaxStippleWidth: ", caps5HAL.dwMaxStippleWidth) << std::endl;
             std::cout << format("  ~ dwMaxStippleHeight: ", caps5HAL.dwMaxStippleHeight) << std::endl;
+        }
+
+        void listAvailableTextureMemory() {
+            createDeviceWithFlags(IID_IDirect3DHALDevice, true);
+
+            std::cout << std::endl << "Listing available texture memory:" << std::endl;
+
+            DDSCAPS ddsCaps = { };
+            ddsCaps.dwCaps = DDSCAPS_TEXTURE;
+            DWORD    dwTotal  = 0;
+            DWORD    dwFree   = 0;
+            HRESULT status = m_ddraw->GetAvailableVidMem(&ddsCaps, &dwTotal, &dwFree);
+            if (FAILED(status)) {
+                std::cout << "Failed to list available texture memory" << std::endl;
+            } else {
+                std::cout << format("  ~ Bytes: ", dwFree) << std::endl;
+            }
+        }
+
+        void startTests() {
+            m_totalTests  = 0;
+            m_passedTests = 0;
+
+            std::cout << std::endl << "Running D3D5 tests:" << std::endl;
+        }
+
+        void printTestResults() {
+            std::cout << std::endl << format("Passed ", m_passedTests, "/", m_totalTests, " tests") << std::endl;
         }
 
         void prepare() {
@@ -275,7 +366,15 @@ class RGBTriangle {
         }
 
         void render() {
-            HRESULT status = m_viewport->Clear(0, NULL, D3DCLEAR_TARGET);
+            DDSURFACEDESC primaryDesc = { };
+            primaryDesc.dwSize = sizeof(DDSURFACEDESC);
+            HRESULT status = m_primarySurf->GetSurfaceDesc(&primaryDesc);
+            if (FAILED(status))
+                throw Error("Failed to get primary surface description");
+            D3DRECT clearRect = { 0, 0, static_cast<LONG>(primaryDesc.dwWidth),
+                                        static_cast<LONG>(primaryDesc.dwHeight) };
+            // Clears with a NULL D3DRECT are skipped in early D3D
+            status = m_viewport->Clear(1, &clearRect, D3DCLEAR_TARGET);
             if (FAILED(status))
                 throw Error("Failed to clear D3D5 viewport");
             if (SUCCEEDED(m_device->BeginScene())) {
@@ -354,8 +453,6 @@ class RGBTriangle {
 
         HWND                          m_hWnd;
 
-        DWORD                         m_vendorID;
-
         Com<IDirectDraw2>             m_ddraw;
         Com<IDirect3D2>               m_d3d;
         Com<IDirect3DDevice2>         m_device;
@@ -409,6 +506,11 @@ int main(int, char**) {
         // list various D3D Device stats
         rgbTriangle.listAdapterDisplayModes();
         rgbTriangle.listDeviceCapabilities();
+        rgbTriangle.listAvailableTextureMemory();
+
+        // run D3D Device tests
+        rgbTriangle.startTests();
+        rgbTriangle.printTestResults();
 
         // D3D5 triangle
         rgbTriangle.prepare();

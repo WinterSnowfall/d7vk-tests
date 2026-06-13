@@ -74,6 +74,47 @@ class RGBTriangle {
             if (FAILED(status))
                 throw Error("Failed to set cooperative level");
 
+            // Use DDraw4 to get the device identifier
+            DDDEVICEIDENTIFIER deviceIdtf = { };
+            status = m_ddraw->GetDeviceIdentifier(&deviceIdtf, 0);
+            if (FAILED(status))
+                throw Error("Failed to get D3D6 device identifier");
+
+            std::cout << format("Using adapter: ", deviceIdtf.szDescription) << std::endl;
+
+            // DWORD to hex printout
+            char vendorID[16];
+            char deviceID[16];
+            sprintf(vendorID, "VendorId: %04lx", deviceIdtf.dwVendorId);
+            sprintf(deviceID, "DeviceId: %04lx", deviceIdtf.dwDeviceId);
+            std::cout << "  ~ " << vendorID << std::endl;
+            std::cout << "  ~ " << deviceID << std::endl;
+
+            // Note: driver versions aren't reported by any Windows XP native drivers on DDraw
+            std::cout << format("  ~ Driver: ", deviceIdtf.szDriver) << std::endl;
+
+            // NVIDIA stores the driver version in the lower half of the lower DWORD
+            if (deviceIdtf.dwVendorId == uint32_t(0x10de)) {
+                // Newer drivers will also spill over into the upper half
+                DWORD driverVersionHigh = HIWORD(deviceIdtf.liDriverVersion.LowPart);
+                DWORD driverVersionLow  = LOWORD(deviceIdtf.liDriverVersion.LowPart);
+                DWORD majorVersion = driverVersionLow / 100;
+                // Might want to revisit this cursed logic, but it should work fine for now
+                if (driverVersionHigh >= 15 && driverVersionLow < 10000)
+                    majorVersion += (driverVersionHigh % 10) * 100;
+                DWORD minorVersion = driverVersionLow % 100;
+                std::cout << format("  ~ Version: ", majorVersion, ".", minorVersion) << std::endl;
+            }
+            // for other vendors simply list the entire DriverVersion long int
+            else {
+                DWORD product = HIWORD(deviceIdtf.liDriverVersion.HighPart);
+                DWORD version = LOWORD(deviceIdtf.liDriverVersion.HighPart);
+                DWORD subVersion = HIWORD(deviceIdtf.liDriverVersion.LowPart);
+                DWORD build = LOWORD(deviceIdtf.liDriverVersion.LowPart);
+                std::cout << format("  ~ Version: ", product, ".", version, ".",
+                    subVersion, ".", build) << std::endl;
+            }
+
             DDSURFACEDESC2 desc2 = { };
             desc2.dwSize = sizeof(DDSURFACEDESC2);
             desc2.dwFlags = DDSD_CAPS;
@@ -186,6 +227,16 @@ class RGBTriangle {
             else
                 std::cout << "  - D3DDEVCAPS_HWTRANSFORMANDLIGHT is not supported" << std::endl;
 
+            if (caps6HAL.dwDevCaps & D3DDEVCAPS_DRAWPRIMITIVES2)
+                std::cout << "  + D3DDEVCAPS_DRAWPRIMITIVES2 is supported" << std::endl;
+            else
+                std::cout << "  - D3DDEVCAPS_DRAWPRIMITIVES2 is not supported" << std::endl;
+
+            if (caps6HAL.dwDevCaps & D3DDEVCAPS_DRAWPRIMITIVES2EX)
+                std::cout << "  + D3DDEVCAPS_DRAWPRIMITIVES2EX is supported" << std::endl;
+            else
+                std::cout << "  - D3DDEVCAPS_DRAWPRIMITIVES2EX is not supported" << std::endl;
+
             if (caps6HAL.dwDevCaps & D3DDEVCAPS_SEPARATETEXTUREMEMORIES)
                 std::cout << "  + D3DDEVCAPS_SEPARATETEXTUREMEMORIES is supported" << std::endl;
             else
@@ -231,6 +282,11 @@ class RGBTriangle {
             else
                 std::cout << "  - D3DDEVCAPS_TLVERTEXVIDEOMEMORY is not supported" << std::endl;
 
+            if (caps6HAL.dpcTriCaps.dwRasterCaps & D3DPRASTERCAPS_WBUFFER)
+                std::cout << "  + D3DPRASTERCAPS_WBUFFER is supported" << std::endl;
+            else
+                std::cout << "  - D3DPRASTERCAPS_WBUFFER is not supported" << std::endl;
+
             std::cout << std::endl << "Listing device capability limits:" << std::endl;
 
             std::cout << format("  ~ dwMaxBufferSize: ", caps6HAL.dwMaxBufferSize) << std::endl;
@@ -272,6 +328,17 @@ class RGBTriangle {
             }
         }
 
+        void startTests() {
+            m_totalTests  = 0;
+            m_passedTests = 0;
+
+            std::cout << std::endl << "Running D3D6 tests:" << std::endl;
+        }
+
+        void printTestResults() {
+            std::cout << std::endl << format("Passed ", m_passedTests, "/", m_totalTests, " tests") << std::endl;
+        }
+
         void prepare() {
             createDeviceWithFlags(IID_IDirect3DHALDevice, true);
 
@@ -304,7 +371,16 @@ class RGBTriangle {
         }
 
         void render() {
-            HRESULT status = m_viewport->Clear2(0, NULL, D3DCLEAR_TARGET, D3DCOLOR_XRGB(0, 0, 0), 1.0f, 0);
+            DDSURFACEDESC2 primaryDesc = { };
+            primaryDesc.dwSize = sizeof(DDSURFACEDESC2);
+            HRESULT status = m_primarySurf->GetSurfaceDesc(&primaryDesc);
+            if (FAILED(status))
+                throw Error("Failed to get primary surface description");
+            D3DRECT clearRect = { 0, 0, static_cast<LONG>(primaryDesc.dwWidth),
+                                        static_cast<LONG>(primaryDesc.dwHeight) };
+            // Clears with a NULL D3DRECT are skipped in early D3D
+            status = m_viewport->Clear2(1, &clearRect, D3DCLEAR_TARGET,
+                                        D3DCOLOR_XRGB(0, 0, 0), 1.0f, 0);
             if (FAILED(status))
                 throw Error("Failed to clear D3D6 viewport");
             if (SUCCEEDED(m_device->BeginScene())) {
@@ -383,8 +459,6 @@ class RGBTriangle {
 
         HWND                          m_hWnd;
 
-        DWORD                         m_vendorID;
-
         Com<IDirectDraw4>             m_ddraw;
         Com<IDirect3D3>               m_d3d;
         Com<IDirect3DDevice3>         m_device;
@@ -440,6 +514,10 @@ int main(int, char**) {
         rgbTriangle.listAdapterDisplayModes();
         rgbTriangle.listDeviceCapabilities();
         rgbTriangle.listAvailableTextureMemory();
+
+        // run D3D Device tests
+        rgbTriangle.startTests();
+        rgbTriangle.printTestResults();
 
         // D3D6 triangle
         rgbTriangle.prepare();

@@ -81,6 +81,47 @@ class RGBTriangle {
             if (FAILED(status))
                 throw Error("Failed to set cooperative level");
 
+            // Use DDraw7 to get the device identifier
+            DDDEVICEIDENTIFIER2 deviceIdtf2 = { };
+            status = m_ddraw->GetDeviceIdentifier(&deviceIdtf2, 0);
+            if (FAILED(status))
+                throw Error("Failed to get D3D7 device identifier");
+
+            std::cout << format("Using adapter: ", deviceIdtf2.szDescription) << std::endl;
+
+            // DWORD to hex printout
+            char vendorID[16];
+            char deviceID[16];
+            sprintf(vendorID, "VendorId: %04lx", deviceIdtf2.dwVendorId);
+            sprintf(deviceID, "DeviceId: %04lx", deviceIdtf2.dwDeviceId);
+            std::cout << "  ~ " << vendorID << std::endl;
+            std::cout << "  ~ " << deviceID << std::endl;
+
+            // Note: driver versions aren't reported by any Windows XP native drivers on DDraw
+            std::cout << format("  ~ Driver: ", deviceIdtf2.szDriver) << std::endl;
+
+            // NVIDIA stores the driver version in the lower half of the lower DWORD
+            if (deviceIdtf2.dwVendorId == uint32_t(0x10de)) {
+                // Newer drivers will also spill over into the upper half
+                DWORD driverVersionHigh = HIWORD(deviceIdtf2.liDriverVersion.LowPart);
+                DWORD driverVersionLow  = LOWORD(deviceIdtf2.liDriverVersion.LowPart);
+                DWORD majorVersion = driverVersionLow / 100;
+                // Might want to revisit this cursed logic, but it should work fine for now
+                if (driverVersionHigh >= 15 && driverVersionLow < 10000)
+                    majorVersion += (driverVersionHigh % 10) * 100;
+                DWORD minorVersion = driverVersionLow % 100;
+                std::cout << format("  ~ Version: ", majorVersion, ".", minorVersion) << std::endl;
+            }
+            // for other vendors simply list the entire DriverVersion long int
+            else {
+                DWORD product = HIWORD(deviceIdtf2.liDriverVersion.HighPart);
+                DWORD version = LOWORD(deviceIdtf2.liDriverVersion.HighPart);
+                DWORD subVersion = HIWORD(deviceIdtf2.liDriverVersion.LowPart);
+                DWORD build = LOWORD(deviceIdtf2.liDriverVersion.LowPart);
+                std::cout << format("  ~ Version: ", product, ".", version, ".",
+                    subVersion, ".", build) << std::endl;
+            }
+
             DDSURFACEDESC2 desc2 = { };
             desc2.dwSize = sizeof(DDSURFACEDESC2);
             desc2.dwFlags = DDSD_CAPS;
@@ -190,6 +231,16 @@ class RGBTriangle {
             else
                 std::cout << "  - D3DDEVCAPS_HWTRANSFORMANDLIGHT is not supported" << std::endl;
 
+            if (caps7TNLHAL.dwDevCaps & D3DDEVCAPS_DRAWPRIMITIVES2)
+                std::cout << "  + D3DDEVCAPS_DRAWPRIMITIVES2 is supported" << std::endl;
+            else
+                std::cout << "  - D3DDEVCAPS_DRAWPRIMITIVES2 is not supported" << std::endl;
+
+            if (caps7TNLHAL.dwDevCaps & D3DDEVCAPS_DRAWPRIMITIVES2EX)
+                std::cout << "  + D3DDEVCAPS_DRAWPRIMITIVES2EX is supported" << std::endl;
+            else
+                std::cout << "  - D3DDEVCAPS_DRAWPRIMITIVES2EX is not supported" << std::endl;
+
             if (caps7TNLHAL.dwDevCaps & D3DDEVCAPS_SEPARATETEXTUREMEMORIES)
                 std::cout << "  + D3DDEVCAPS_SEPARATETEXTUREMEMORIES is supported" << std::endl;
             else
@@ -234,6 +285,11 @@ class RGBTriangle {
                 std::cout << "  + D3DDEVCAPS_TLVERTEXVIDEOMEMORY is supported" << std::endl;
             else
                 std::cout << "  - D3DDEVCAPS_TLVERTEXVIDEOMEMORY is not supported" << std::endl;
+
+            if (caps7TNLHAL.dpcTriCaps.dwRasterCaps & D3DPRASTERCAPS_WBUFFER)
+                std::cout << "  + D3DPRASTERCAPS_WBUFFER is supported" << std::endl;
+            else
+                std::cout << "  - D3DPRASTERCAPS_WBUFFER is not supported" << std::endl;
 
             std::cout << std::endl << "Listing device capability limits:" << std::endl;
 
@@ -356,6 +412,48 @@ class RGBTriangle {
             }
         }
 
+        // Test setting various invalid light types
+        void testSetInvalidLightType() {
+            createDeviceWithFlags(IID_IDirect3DTnLHalDevice, true);
+
+            D3DLIGHT7 validLight = { };
+            validLight.dltType        = D3DLIGHT_POINT;
+            validLight.dcvDiffuse.r   = 1.0f;
+            validLight.dcvDiffuse.g   = 1.0f;
+            validLight.dcvDiffuse.b   = 1.0f;
+            validLight.dcvAmbient.r   = 1.0f;
+            validLight.dcvAmbient.g   = 1.0f;
+            validLight.dcvAmbient.b   = 1.0f;
+            validLight.dcvSpecular.r  = 1.0f;
+            validLight.dcvSpecular.g  = 1.0f;
+            validLight.dcvSpecular.b  = 1.0f;
+            validLight.dvPosition.x   = 0.0f;
+            validLight.dvPosition.y   = 1000.0f;
+            validLight.dvPosition.z   = -100.0f;
+            validLight.dvAttenuation0 = 1.0f;
+            validLight.dvRange        = 1000.0f;
+            D3DLIGHT7 invalidLight = { };
+            invalidLight.dltType = D3DLIGHTTYPE(0);
+            D3DLIGHT7 invalidLight2 = { };
+            invalidLight2.dltType = D3DLIGHTTYPE(4);
+            D3DLIGHT7 invalidLight3 = { };
+            invalidLight2.dltType = D3DLIGHTTYPE(6);
+
+            m_totalTests++;
+            HRESULT statusVL  = m_device->SetLight(0, &validLight);
+            HRESULT statusIL  = m_device->SetLight(0, &invalidLight);
+            HRESULT statusIL2 = m_device->SetLight(0, &invalidLight2);
+            HRESULT statusIL3 = m_device->SetLight(0, &invalidLight3);
+
+            // Unlike later APIs, D3D7 actually validates light types here
+            if (SUCCEEDED(statusVL) && FAILED(statusIL) && FAILED(statusIL2) && FAILED(statusIL3)) {
+                m_passedTests++;
+                std::cout << "  + The invalid light type test has passed" << std::endl;
+            } else {
+                std::cout << "  - The invalid light type test has failed" << std::endl;
+            }
+        }
+
         // Test setting a few render states which are obsolete in D3D7
         void testObsoleteRenderStates() {
             createDeviceWithFlags(IID_IDirect3DTnLHalDevice, true);
@@ -462,8 +560,6 @@ class RGBTriangle {
 
         HWND                          m_hWnd;
 
-        DWORD                         m_vendorID;
-
         Com<IDirectDraw7>             m_ddraw;
         Com<IDirect3D7>               m_d3d;
         Com<IDirect3DDevice7>         m_device;
@@ -523,6 +619,7 @@ int main(int, char**) {
         rgbTriangle.startTests();
         rgbTriangle.testZeroViewport();
         rgbTriangle.testMipMapLevels();
+        rgbTriangle.testSetInvalidLightType();
         rgbTriangle.testObsoleteRenderStates();
         rgbTriangle.printTestResults();
 

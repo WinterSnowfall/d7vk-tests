@@ -26,6 +26,7 @@ typedef struct _D3DDeviceDesc3 {
 } D3DDEVICEDESC3;
 
 #ifdef __CRT_UUID_DECL
+__CRT_UUID_DECL(IDirectDraw4, 0x9C59509A, 0x39BD, 0x11D1, 0x8C, 0x4A, 0x00, 0xC0, 0x4F, 0xD9, 0x30, 0xC5);
 __CRT_UUID_DECL(IDirect3D, 0x3BBA0080, 0x2421, 0x11CF, 0xA3, 0x1A, 0x00, 0xAA, 0x00, 0xB9, 0x33, 0x56);
 #elif defined(_MSC_VER)
 interface DECLSPEC_UUID("3BBA0080-2421-11CF-A31A-00AA00B93356") IDirect3D;
@@ -73,9 +74,56 @@ class RGBTriangle {
             if (FAILED(status))
                 throw Error("Failed to create DDraw interface");
 
+            Com<IDirectDraw4> ddrawDevIdtf;
+            // DDraw4 Interface
+            status = m_ddraw->QueryInterface(__uuidof(IDirectDraw4), reinterpret_cast<void**>(&ddrawDevIdtf));
+            if (FAILED(status))
+                throw Error("Failed to create DDraw4 interface");
+
             status = m_ddraw->SetCooperativeLevel(m_hWnd, DDSCL_NORMAL);
             if (FAILED(status))
                 throw Error("Failed to set cooperative level");
+
+            // Use DDraw4 to get the device identifier
+            DDDEVICEIDENTIFIER deviceIdtf = { };
+            status = ddrawDevIdtf->GetDeviceIdentifier(&deviceIdtf, 0);
+            if (FAILED(status))
+                throw Error("Failed to get D3D3 device identifier");
+
+            std::cout << format("Using adapter: ", deviceIdtf.szDescription) << std::endl;
+
+            // DWORD to hex printout
+            char vendorID[16];
+            char deviceID[16];
+            sprintf(vendorID, "VendorId: %04lx", deviceIdtf.dwVendorId);
+            sprintf(deviceID, "DeviceId: %04lx", deviceIdtf.dwDeviceId);
+            std::cout << "  ~ " << vendorID << std::endl;
+            std::cout << "  ~ " << deviceID << std::endl;
+
+            // Note: driver versions aren't reported by any Windows XP native drivers on DDraw
+            std::cout << format("  ~ Driver: ", deviceIdtf.szDriver) << std::endl;
+
+            // NVIDIA stores the driver version in the lower half of the lower DWORD
+            if (deviceIdtf.dwVendorId == uint32_t(0x10de)) {
+                // Newer drivers will also spill over into the upper half
+                DWORD driverVersionHigh = HIWORD(deviceIdtf.liDriverVersion.LowPart);
+                DWORD driverVersionLow  = LOWORD(deviceIdtf.liDriverVersion.LowPart);
+                DWORD majorVersion = driverVersionLow / 100;
+                // Might want to revisit this cursed logic, but it should work fine for now
+                if (driverVersionHigh >= 15 && driverVersionLow < 10000)
+                    majorVersion += (driverVersionHigh % 10) * 100;
+                DWORD minorVersion = driverVersionLow % 100;
+                std::cout << format("  ~ Version: ", majorVersion, ".", minorVersion) << std::endl;
+            }
+            // for other vendors simply list the entire DriverVersion long int
+            else {
+                DWORD product = HIWORD(deviceIdtf.liDriverVersion.HighPart);
+                DWORD version = LOWORD(deviceIdtf.liDriverVersion.HighPart);
+                DWORD subVersion = HIWORD(deviceIdtf.liDriverVersion.LowPart);
+                DWORD build = LOWORD(deviceIdtf.liDriverVersion.LowPart);
+                std::cout << format("  ~ Version: ", product, ".", version, ".",
+                    subVersion, ".", build) << std::endl;
+            }
 
             DDSURFACEDESC desc = { };
             desc.dwSize = sizeof(DDSURFACEDESC);
@@ -195,6 +243,16 @@ class RGBTriangle {
             else
                 std::cout << "  - D3DDEVCAPS_HWTRANSFORMANDLIGHT is not supported" << std::endl;
 
+            if (caps3HAL.dwDevCaps & D3DDEVCAPS_DRAWPRIMITIVES2)
+                std::cout << "  + D3DDEVCAPS_DRAWPRIMITIVES2 is supported" << std::endl;
+            else
+                std::cout << "  - D3DDEVCAPS_DRAWPRIMITIVES2 is not supported" << std::endl;
+
+            if (caps3HAL.dwDevCaps & D3DDEVCAPS_DRAWPRIMITIVES2EX)
+                std::cout << "  + D3DDEVCAPS_DRAWPRIMITIVES2EX is supported" << std::endl;
+            else
+                std::cout << "  - D3DDEVCAPS_DRAWPRIMITIVES2EX is not supported" << std::endl;
+
             if (caps3HAL.dwDevCaps & D3DDEVCAPS_SEPARATETEXTUREMEMORIES)
                 std::cout << "  + D3DDEVCAPS_SEPARATETEXTUREMEMORIES is supported" << std::endl;
             else
@@ -239,6 +297,11 @@ class RGBTriangle {
                 std::cout << "  + D3DDEVCAPS_TLVERTEXVIDEOMEMORY is supported" << std::endl;
             else
                 std::cout << "  - D3DDEVCAPS_TLVERTEXVIDEOMEMORY is not supported" << std::endl;
+
+            if (caps3HAL.dpcTriCaps.dwRasterCaps & D3DPRASTERCAPS_WBUFFER)
+                std::cout << "  + D3DPRASTERCAPS_WBUFFER is supported" << std::endl;
+            else
+                std::cout << "  - D3DPRASTERCAPS_WBUFFER is not supported" << std::endl;
 
             std::cout << std::endl << "Listing device capability limits:" << std::endl;
 
@@ -298,6 +361,10 @@ class RGBTriangle {
 
             uint8_t *ptr = reinterpret_cast<uint8_t*>(ebDesc.lpData);
 
+            memcpy(ptr, m_rgbVertices.data(), m_rgbVerticesSize);
+            ptr += m_rgbVerticesSize;
+            const uint8_t *vend = ptr;
+
             D3DINSTRUCTION* instruction = reinterpret_cast<D3DINSTRUCTION*>(ptr);
             instruction->bOpcode = D3DOP_STATERENDER;
             instruction->bSize = sizeof(D3DSTATE);
@@ -329,6 +396,7 @@ class RGBTriangle {
             pv->wStart = 0;
             pv->wDest = 0;
             pv->dwCount = m_rgbVertices.size();
+            pv->dwReserved = 0;
             ptr += sizeof(D3DPROCESSVERTICES);
 
             instruction = reinterpret_cast<D3DINSTRUCTION*>(ptr);
@@ -336,15 +404,13 @@ class RGBTriangle {
             instruction->bSize = sizeof(D3DTRIANGLE);
             instruction->wCount = m_rgbVertices.size() / 3;
             ptr += sizeof(D3DINSTRUCTION);
-
-            for (DWORD i = 0; i < m_rgbVertices.size(); i+=3) {
-                D3DTRIANGLE* t = reinterpret_cast<D3DTRIANGLE*>(ptr);
-                t->v1 = i;
-                t->v2 = i + 1;
-                t->v3 = i + 2;
-                t->wFlags = 0;
-                ptr += sizeof(D3DTRIANGLE);
-            }
+            // We'll only render one triangle, so don't overthink it
+            D3DTRIANGLE* t = reinterpret_cast<D3DTRIANGLE*>(ptr);
+            t->v1 = 0;
+            t->v2 = 1;
+            t->v3 = 2;
+            t->wFlags = D3DTRIFLAG_START;
+            ptr += sizeof(D3DTRIANGLE);
 
             instruction = reinterpret_cast<D3DINSTRUCTION*>(ptr);
             instruction->bOpcode = D3DOP_EXIT;
@@ -354,13 +420,10 @@ class RGBTriangle {
 
             D3DEXECUTEDATA executeData = { };
             executeData.dwSize = sizeof(D3DEXECUTEDATA);
-            executeData.dwInstructionOffset = 0;
-            executeData.dwInstructionLength = static_cast<DWORD>(ptr - reinterpret_cast<uint8_t*>(ebDesc.lpData));
-            executeData.dwVertexOffset = static_cast<DWORD>(ptr - reinterpret_cast<uint8_t*>(ebDesc.lpData));
+            executeData.dwInstructionOffset = m_rgbVerticesSize;
+            executeData.dwInstructionLength = static_cast<DWORD>(ptr - vend);
             executeData.dwVertexCount = m_rgbVertices.size();
-            executeData.dwHVertexOffset = executeData.dwVertexOffset;
 
-            memcpy(ptr, m_rgbVertices.data(), m_rgbVerticesSize);
             status = m_eb->Unlock();
             if (FAILED(status))
                 throw Error("Failed to unlock D3D3 execute buffer");
@@ -371,7 +434,15 @@ class RGBTriangle {
         }
 
         void render() {
-            HRESULT status = m_viewport->Clear(0, NULL, D3DCLEAR_TARGET);
+            DDSURFACEDESC primaryDesc = { };
+            primaryDesc.dwSize = sizeof(DDSURFACEDESC);
+            HRESULT status = m_primarySurf->GetSurfaceDesc(&primaryDesc);
+            if (FAILED(status))
+                throw Error("Failed to get primary surface description");
+            D3DRECT clearRect = { 0, 0, static_cast<LONG>(primaryDesc.dwWidth),
+                                        static_cast<LONG>(primaryDesc.dwHeight) };
+            // Clears with a NULL D3DRECT are skipped in early D3D
+            status = m_viewport->Clear(1, &clearRect, D3DCLEAR_TARGET);
             if (FAILED(status))
                 throw Error("Failed to clear D3D3 viewport");
             if (SUCCEEDED(m_device->BeginScene())) {
@@ -462,8 +533,6 @@ class RGBTriangle {
         static RECT                   s_rect;
 
         HWND                          m_hWnd;
-
-        DWORD                         m_vendorID;
 
         Com<IDirectDraw>              m_ddraw;
         Com<IDirect3D>                m_d3d;
