@@ -126,7 +126,7 @@ class RGBTriangle {
             m_pp.BackBufferHeight = RGBTriangle::WINDOW_HEIGHT;
             m_pp.BackBufferFormat = dm.Format;
 
-            createDeviceWithFlags(&m_pp, D3DCREATE_HARDWARE_VERTEXPROCESSING, D3DDEVTYPE_HAL, true);
+            createDeviceWithFlags(&m_pp, D3DCREATE_HARDWARE_VERTEXPROCESSING, D3DDEVTYPE_HAL, true, true);
         }
 
         // D3D Adapter Display Mode enumeration
@@ -202,7 +202,7 @@ class RGBTriangle {
                 } else {
                     bbPP.BackBufferFormat = bbFormatIter->first.second;
 
-                    status = createDeviceWithFlags(&bbPP, D3DCREATE_HARDWARE_VERTEXPROCESSING, D3DDEVTYPE_HAL, false);
+                    status = createDeviceWithFlags(&bbPP, D3DCREATE_HARDWARE_VERTEXPROCESSING, D3DDEVTYPE_HAL, true, false);
                     if (FAILED(status)) {
                         std::cout << format("  ! The ", bbFormatIter->second, " format is supported, device creation FAILED") << std::endl;
                     } else {
@@ -587,11 +587,11 @@ class RGBTriangle {
                                                        {D3DPS_VERSION(3,0), "3.0"} };
 
             // get the capabilities from the D3D device in SWVP mode
-            createDeviceWithFlags(&m_pp, D3DCREATE_SOFTWARE_VERTEXPROCESSING, D3DDEVTYPE_HAL, true);
+            createDeviceWithFlags(&m_pp, D3DCREATE_SOFTWARE_VERTEXPROCESSING, D3DDEVTYPE_HAL, true, true);
             m_device->GetDeviceCaps(&caps9SWVP);
 
             // get the capabilities from the D3D device in HWVP mode
-            createDeviceWithFlags(&m_pp, D3DCREATE_HARDWARE_VERTEXPROCESSING, D3DDEVTYPE_HAL, true);
+            createDeviceWithFlags(&m_pp, D3DCREATE_HARDWARE_VERTEXPROCESSING, D3DDEVTYPE_HAL, true, true);
             m_device->GetDeviceCaps(&caps9HWVP);
 
             // get the capabilities from the D3D interface
@@ -943,17 +943,25 @@ class RGBTriangle {
             std::cout << format("  ~ MaxTextureBlendStages: ", caps9.MaxTextureBlendStages) << std::endl;
             std::cout << format("  ~ MaxSimultaneousTextures: ", caps9.MaxSimultaneousTextures) << std::endl;
             // may vary between interface and device modes (SWVP or HWVP)
-            std::cout << format("  ~ MaxActiveLights: ", caps9.MaxActiveLights, " (I), ", caps9SWVP.MaxActiveLights,
-                                " (SWVP), ", caps9HWVP.MaxActiveLights, " (HWVP)") << std::endl;
-            // may vary between interface and device modes (SWVP or HWVP)
-            std::cout << format("  ~ MaxUserClipPlanes: ", caps9.MaxUserClipPlanes, " (I), ", caps9SWVP.MaxUserClipPlanes,
-                                " (SWVP), ", caps9HWVP.MaxUserClipPlanes, " (HWVP)") << std::endl;
-            // may vary between interface and device modes (SWVP or HWVP)
-            std::cout << format("  ~ MaxVertexBlendMatrices: ", caps9.MaxVertexBlendMatrices, " (I), ", caps9SWVP.MaxVertexBlendMatrices,
-                                " (SWVP), ", caps9HWVP.MaxVertexBlendMatrices, " (HWVP)") << std::endl;
-            // may vary between interface and device modes (SWVP or HWVP)
-            std::cout << format("  ~ MaxVertexBlendMatrixIndex: ", caps9.MaxVertexBlendMatrixIndex, " (I), ", caps9SWVP.MaxVertexBlendMatrixIndex,
-                                " (SWVP), ", caps9HWVP.MaxVertexBlendMatrixIndex, " (HWVP)") << std::endl;
+            if (!m_canOnlySWVP) {
+                std::cout << format("  ~ MaxActiveLights: ", caps9.MaxActiveLights, " (I), ", caps9SWVP.MaxActiveLights,
+                                    " (SWVP), ", caps9HWVP.MaxActiveLights, " (HWVP)") << std::endl;
+                std::cout << format("  ~ MaxUserClipPlanes: ", caps9.MaxUserClipPlanes, " (I), ", caps9SWVP.MaxUserClipPlanes,
+                                    " (SWVP), ", caps9HWVP.MaxUserClipPlanes, " (HWVP)") << std::endl;
+                std::cout << format("  ~ MaxVertexBlendMatrices: ", caps9.MaxVertexBlendMatrices, " (I), ", caps9SWVP.MaxVertexBlendMatrices,
+                                    " (SWVP), ", caps9HWVP.MaxVertexBlendMatrices, " (HWVP)") << std::endl;
+                std::cout << format("  ~ MaxVertexBlendMatrixIndex: ", caps9.MaxVertexBlendMatrixIndex, " (I), ", caps9SWVP.MaxVertexBlendMatrixIndex,
+                                    " (SWVP), ", caps9HWVP.MaxVertexBlendMatrixIndex, " (HWVP)") << std::endl;
+            } else {
+                std::cout << format("  ~ MaxActiveLights: ", caps9.MaxActiveLights, " (I), ", caps9SWVP.MaxActiveLights,
+                                    " (SWVP)") << std::endl;
+                std::cout << format("  ~ MaxUserClipPlanes: ", caps9.MaxUserClipPlanes, " (I), ", caps9SWVP.MaxUserClipPlanes,
+                                    " (SWVP)") << std::endl;
+                std::cout << format("  ~ MaxVertexBlendMatrices: ", caps9.MaxVertexBlendMatrices, " (I), ", caps9SWVP.MaxVertexBlendMatrices,
+                                    " (SWVP)") << std::endl;
+                std::cout << format("  ~ MaxVertexBlendMatrixIndex: ", caps9.MaxVertexBlendMatrixIndex, " (I), ", caps9SWVP.MaxVertexBlendMatrixIndex,
+                                    " (SWVP)") << std::endl;
+            }
             std::cout << format("  ~ MaxPointSize: ", caps9.MaxPointSize) << std::endl;
             std::cout << format("  ~ MaxPrimitiveCount: ", caps9.MaxPrimitiveCount) << std::endl;
             std::cout << format("  ~ MaxVertexIndex: ", caps9.MaxVertexIndex) << std::endl;
@@ -1009,11 +1017,11 @@ class RGBTriangle {
                                                                    D3DPOOL_DEFAULT, &cubeText, NULL);
 
                 if (SUCCEEDED(statusCreate)) {
-                    std::cout << format("  + The ", dsFormatIter->second , " format test is supported (CreateCubeTexture)") << std::endl;
+                    std::cout << format("  + The ", dsFormatIter->second , " format is supported (CreateCubeTexture)") << std::endl;
                 } else if (SUCCEEDED(status)) {
-                    std::cout << format("  ~ The ", dsFormatIter->second , " format test is supported (CheckDeviceFormat)") << std::endl;
+                    std::cout << format("  ~ The ", dsFormatIter->second , " format is supported (CheckDeviceFormat)") << std::endl;
                 } else {
-                    std::cout << format("  - The ", dsFormatIter->second ," format test isn't supported") << std::endl;
+                    std::cout << format("  - The ", dsFormatIter->second ," format isn't supported") << std::endl;
                 }
             }
         }
@@ -1109,17 +1117,17 @@ class RGBTriangle {
             memcpy(&piPP, &m_pp, sizeof(m_pp));
             piPP.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;
 
-            HRESULT statusImmediate = createDeviceWithFlags(&piPP, D3DCREATE_HARDWARE_VERTEXPROCESSING, D3DDEVTYPE_HAL, false);
+            HRESULT statusImmediate = createDeviceWithFlags(&piPP, D3DCREATE_HARDWARE_VERTEXPROCESSING, D3DDEVTYPE_HAL, true, false);
 
             memcpy(&piPP, &m_pp, sizeof(m_pp));
             piPP.PresentationInterval = D3DPRESENT_INTERVAL_ONE;
 
-            HRESULT statusOne = createDeviceWithFlags(&piPP, D3DCREATE_HARDWARE_VERTEXPROCESSING, D3DDEVTYPE_HAL, false);
+            HRESULT statusOne = createDeviceWithFlags(&piPP, D3DCREATE_HARDWARE_VERTEXPROCESSING, D3DDEVTYPE_HAL, true, false);
 
             memcpy(&piPP, &m_pp, sizeof(m_pp));
             piPP.PresentationInterval = D3DPRESENT_INTERVAL_TWO;
 
-            HRESULT statusTwo = createDeviceWithFlags(&piPP, D3DCREATE_HARDWARE_VERTEXPROCESSING, D3DDEVTYPE_HAL, false);
+            HRESULT statusTwo = createDeviceWithFlags(&piPP, D3DCREATE_HARDWARE_VERTEXPROCESSING, D3DDEVTYPE_HAL, true, false);
 
             if (SUCCEEDED(statusImmediate) && SUCCEEDED(statusOne) && FAILED(statusTwo)) {
                 m_passedTests++;
@@ -1159,134 +1167,154 @@ class RGBTriangle {
 
         // D3DCREATE_PUREDEVICE only with D3DCREATE_HARDWARE_VERTEXPROCESSING test
         void testPureDeviceOnlyWithHWVP() {
-            // native drivers will fail to create a device with D3DCREATE_PUREDEVICE unless
-            // it is combined together with D3DCREATE_HARDWARE_VERTEXPROCESSING
-            HRESULT statusHWVP = createDeviceWithFlags(&m_pp, D3DCREATE_HARDWARE_VERTEXPROCESSING | D3DCREATE_PUREDEVICE, D3DDEVTYPE_HAL, false);
-            HRESULT statusSWVP = createDeviceWithFlags(&m_pp, D3DCREATE_SOFTWARE_VERTEXPROCESSING | D3DCREATE_PUREDEVICE, D3DDEVTYPE_HAL, false);
-            HRESULT statusMVP = createDeviceWithFlags(&m_pp, D3DCREATE_MIXED_VERTEXPROCESSING | D3DCREATE_PUREDEVICE, D3DDEVTYPE_HAL, false);
+            if (!m_canOnlySWVP) {
+                // native drivers will fail to create a device with D3DCREATE_PUREDEVICE unless
+                // it is combined together with D3DCREATE_HARDWARE_VERTEXPROCESSING
+                HRESULT statusHWVP = createDeviceWithFlags(&m_pp, D3DCREATE_HARDWARE_VERTEXPROCESSING | D3DCREATE_PUREDEVICE, D3DDEVTYPE_HAL, false, false);
+                HRESULT statusSWVP = createDeviceWithFlags(&m_pp, D3DCREATE_SOFTWARE_VERTEXPROCESSING | D3DCREATE_PUREDEVICE, D3DDEVTYPE_HAL, false, false);
+                HRESULT statusMVP = createDeviceWithFlags(&m_pp, D3DCREATE_MIXED_VERTEXPROCESSING | D3DCREATE_PUREDEVICE, D3DDEVTYPE_HAL, false, false);
 
-            m_totalTests++;
+                m_totalTests++;
 
-            if (SUCCEEDED(statusHWVP) && FAILED(statusSWVP) && FAILED(statusMVP)) {
-                m_passedTests++;
-                std::cout << "  + The PUREDEVICE mode only with HWVP test has passed" << std::endl;
+                if (SUCCEEDED(statusHWVP) && FAILED(statusSWVP) && FAILED(statusMVP)) {
+                    m_passedTests++;
+                    std::cout << "  + The PUREDEVICE mode only with HWVP test has passed" << std::endl;
+                } else {
+                    std::cout << "  - The PUREDEVICE mode only with HWVP test has failed" << std::endl;
+                }
             } else {
-                std::cout << "  - The PUREDEVICE mode only with HWVP test has failed" << std::endl;
+                std::cout << "  ~ The PUREDEVICE mode only with HWVP test did not run" << std::endl;
             }
         }
 
         // Set/GetClipStatus test on D3DCREATE_HARDWARE_VERTEXPROCESSING/D3DCREATE_MIXED_VERTEXPROCESSING
         void testClipStatus() {
-            createDeviceWithFlags(&m_pp, D3DCREATE_MIXED_VERTEXPROCESSING, D3DDEVTYPE_HAL, true);
+            if (!m_canOnlySWVP) {
+                createDeviceWithFlags(&m_pp, D3DCREATE_MIXED_VERTEXPROCESSING, D3DDEVTYPE_HAL, false, true);
 
-            D3DCLIPSTATUS9 initialClipStatus = {};
-            D3DCLIPSTATUS9 setClipStatus = {D3DCS_FRONT, D3DCS_FRONT};
-            D3DCLIPSTATUS9 afterSetClipStatus = {};
-            D3DCLIPSTATUS9 finalClipStatus = {};
-            D3DCLIPSTATUS9 testClipStatus = {};
-            Com<IDirect3DVertexBuffer9> vertexBuffer;
+                D3DCLIPSTATUS9 initialClipStatus = {};
+                D3DCLIPSTATUS9 setClipStatus = {D3DCS_FRONT, D3DCS_FRONT};
+                D3DCLIPSTATUS9 afterSetClipStatus = {};
+                D3DCLIPSTATUS9 finalClipStatus = {};
+                D3DCLIPSTATUS9 testClipStatus = {};
+                Com<IDirect3DVertexBuffer9> vertexBuffer;
 
-            void* vertices;
-            m_device->CreateVertexBuffer(m_rgbVerticesSize, 0, RGBT_FVF_CODES,
-                                         D3DPOOL_DEFAULT, &vertexBuffer, NULL);
-            vertexBuffer->Lock(0, m_rgbVerticesSize, reinterpret_cast<void**>(&vertices), 0);
-            memcpy(vertices, m_rgbVertices.data(), m_rgbVerticesSize);
-            vertexBuffer->Unlock();
+                void* vertices;
+                m_device->CreateVertexBuffer(m_rgbVerticesSize, 0, RGBT_FVF_CODES,
+                                            D3DPOOL_DEFAULT, &vertexBuffer, NULL);
+                vertexBuffer->Lock(0, m_rgbVerticesSize, reinterpret_cast<void**>(&vertices), 0);
+                memcpy(vertices, m_rgbVertices.data(), m_rgbVerticesSize);
+                vertexBuffer->Unlock();
 
-            m_totalTests++;
+                m_totalTests++;
 
-            HRESULT statusMixed = m_device->GetClipStatus(&initialClipStatus);
-            //std::cout << format("  * initialClipStatus.ClipUnion: ", initialClipStatus.ClipUnion) << std::endl;
-            //std::cout << format("  * initialClipStatus.ClipIntersection: ", initialClipStatus.ClipIntersection) << std::endl;
-            if (SUCCEEDED(statusMixed)) {
-                m_device->SetClipStatus(&setClipStatus);
-                m_device->GetClipStatus(&afterSetClipStatus);
-                //std::cout << format("  * afterSetClipStatus.ClipUnion: ", afterSetClipStatus.ClipUnion) << std::endl;
-                //std::cout << format("  * afterSetClipStatus.ClipIntersection: ", afterSetClipStatus.ClipIntersection) << std::endl;
-                m_device->BeginScene();
-                m_device->SetSoftwareVertexProcessing(TRUE);
-                m_device->SetRenderState(D3DRS_CLIPPING, FALSE);
-                m_device->SetStreamSource(0, vertexBuffer.ptr(), 0, sizeof(RGBVERTEX));
-                m_device->SetFVF(RGBT_FVF_CODES);
-                m_device->DrawPrimitive(D3DPT_TRIANGLELIST, 0, 1);
-                m_device->EndScene();
-                // The D3D9 documentation states: "When D3DRS_CLIPPING is set to FALSE, ClipUnion and ClipIntersection are set to zero.
-                // Direct3D updates the clip status during drawing calls.", however this does not happen in practice.
-                m_device->GetClipStatus(&finalClipStatus);
-                //std::cout << format("  * finalClipStatus.ClipUnion: ", finalClipStatus.ClipUnion) << std::endl;
-                //std::cout << format("  * finalClipStatus.ClipIntersection: ", finalClipStatus.ClipIntersection) << std::endl;
-            }
+                HRESULT statusMixed = m_device->GetClipStatus(&initialClipStatus);
+                //std::cout << format("  * initialClipStatus.ClipUnion: ", initialClipStatus.ClipUnion) << std::endl;
+                //std::cout << format("  * initialClipStatus.ClipIntersection: ", initialClipStatus.ClipIntersection) << std::endl;
+                if (SUCCEEDED(statusMixed)) {
+                    m_device->SetClipStatus(&setClipStatus);
+                    m_device->GetClipStatus(&afterSetClipStatus);
+                    //std::cout << format("  * afterSetClipStatus.ClipUnion: ", afterSetClipStatus.ClipUnion) << std::endl;
+                    //std::cout << format("  * afterSetClipStatus.ClipIntersection: ", afterSetClipStatus.ClipIntersection) << std::endl;
+                    m_device->BeginScene();
+                    m_device->SetSoftwareVertexProcessing(TRUE);
+                    m_device->SetRenderState(D3DRS_CLIPPING, FALSE);
+                    m_device->SetStreamSource(0, vertexBuffer.ptr(), 0, sizeof(RGBVERTEX));
+                    m_device->SetFVF(RGBT_FVF_CODES);
+                    m_device->DrawPrimitive(D3DPT_TRIANGLELIST, 0, 1);
+                    m_device->EndScene();
+                    // The D3D9 documentation states: "When D3DRS_CLIPPING is set to FALSE, ClipUnion and ClipIntersection are set to zero.
+                    // Direct3D updates the clip status during drawing calls.", however this does not happen in practice.
+                    m_device->GetClipStatus(&finalClipStatus);
+                    //std::cout << format("  * finalClipStatus.ClipUnion: ", finalClipStatus.ClipUnion) << std::endl;
+                    //std::cout << format("  * finalClipStatus.ClipIntersection: ", finalClipStatus.ClipIntersection) << std::endl;
+                }
 
-            createDeviceWithFlags(&m_pp, D3DCREATE_HARDWARE_VERTEXPROCESSING, D3DDEVTYPE_HAL, true);
+                createDeviceWithFlags(&m_pp, D3DCREATE_HARDWARE_VERTEXPROCESSING, D3DDEVTYPE_HAL, false, true);
 
-            HRESULT statusHWVPSet = m_device->SetClipStatus(&setClipStatus);
-            HRESULT statusHWVPGet = m_device->GetClipStatus(&testClipStatus);
-            //std::cout << format("  * testClipStatus.ClipUnion: ", testClipStatus.ClipUnion) << std::endl;
-            //std::cout << format("  * testClipStatus.ClipIntersection: ", testClipStatus.ClipIntersection) << std::endl;
+                HRESULT statusHWVPSet = m_device->SetClipStatus(&setClipStatus);
+                HRESULT statusHWVPGet = m_device->GetClipStatus(&testClipStatus);
+                //std::cout << format("  * testClipStatus.ClipUnion: ", testClipStatus.ClipUnion) << std::endl;
+                //std::cout << format("  * testClipStatus.ClipIntersection: ", testClipStatus.ClipIntersection) << std::endl;
 
-            if (SUCCEEDED(statusMixed) && SUCCEEDED(statusHWVPGet) && SUCCEEDED(statusHWVPSet) &&
-                initialClipStatus.ClipUnion == 0 && initialClipStatus.ClipIntersection == 0xffffffff &&
-                afterSetClipStatus.ClipUnion == D3DCS_FRONT && afterSetClipStatus.ClipIntersection == D3DCS_FRONT &&
-                finalClipStatus.ClipUnion == D3DCS_FRONT && finalClipStatus.ClipIntersection == D3DCS_FRONT &&
-                testClipStatus.ClipUnion == D3DCS_FRONT && testClipStatus.ClipIntersection == D3DCS_FRONT) {
-                m_passedTests++;
-                std::cout << "  + The Set/GetClipStatus test has passed" << std::endl;
+                if (SUCCEEDED(statusMixed) && SUCCEEDED(statusHWVPGet) && SUCCEEDED(statusHWVPSet) &&
+                    initialClipStatus.ClipUnion == 0 && initialClipStatus.ClipIntersection == 0xffffffff &&
+                    afterSetClipStatus.ClipUnion == D3DCS_FRONT && afterSetClipStatus.ClipIntersection == D3DCS_FRONT &&
+                    finalClipStatus.ClipUnion == D3DCS_FRONT && finalClipStatus.ClipIntersection == D3DCS_FRONT &&
+                    testClipStatus.ClipUnion == D3DCS_FRONT && testClipStatus.ClipIntersection == D3DCS_FRONT) {
+                    m_passedTests++;
+                    std::cout << "  + The Set/GetClipStatus test has passed" << std::endl;
+                } else {
+                    std::cout << "  - The Set/GetClipStatus test has failed" << std::endl;
+                }
             } else {
-                std::cout << "  - The Set/GetClipStatus test has failed" << std::endl;
+                std::cout << "  ~ The Set/GetClipStatus test did not run" << std::endl;
             }
         }
 
         // DrawIndexedPrimitive test with various NumVertices/primCount values
         void testDrawIndexedPrimitiveMaxPrimCount() {
-            resetOrRecreateDevice();
+            // This test explodes on TNT2 cards, possibly due to exceeding hardware limits
+            if (!m_canOnlySWVP) {
+                resetOrRecreateDevice();
 
-            Com<IDirect3DVertexBuffer9> vertexBuffer;
-            Com<IDirect3DIndexBuffer9>  indexBuffer;
+                Com<IDirect3DVertexBuffer9> vertexBuffer;
+                Com<IDirect3DIndexBuffer9>  indexBuffer;
 
-            void* vertices;
-            m_device->CreateVertexBuffer(m_rgbVerticesSize, 0, RGBT_FVF_CODES,
-                                         D3DPOOL_DEFAULT, &vertexBuffer, NULL);
-            vertexBuffer->Lock(0, m_rgbVerticesSize, reinterpret_cast<void**>(&vertices), 0);
-            memcpy(vertices, m_rgbVertices.data(), m_rgbVerticesSize);
-            vertexBuffer->Unlock();
+                void* vertices;
+                m_device->CreateVertexBuffer(m_rgbVerticesSize, 0, RGBT_FVF_CODES,
+                                            D3DPOOL_DEFAULT, &vertexBuffer, NULL);
+                vertexBuffer->Lock(0, m_rgbVerticesSize, reinterpret_cast<void**>(&vertices), 0);
+                memcpy(vertices, m_rgbVertices.data(), m_rgbVerticesSize);
+                vertexBuffer->Unlock();
 
-            std::array<uint32_t, 8> indices_values = { 0, 1, 2, 1, 2, 1, 0, 1 };
-            const size_t indices_size = indices_values.size() * sizeof(uint32_t);
-            void* indices;
-            m_device->CreateIndexBuffer(256, 0, D3DFMT_INDEX32, D3DPOOL_DEFAULT, &indexBuffer, NULL);
-            indexBuffer->Lock(0, indices_size, reinterpret_cast<void**>(&indices), 0);
-            memcpy(indices, indices_values.data(), indices_size);
-            indexBuffer->Unlock();
+                std::array<uint32_t, 8> indices_values = { 0, 1, 2, 1, 2, 1, 0, 1 };
+                const size_t indices_size = indices_values.size() * sizeof(uint32_t);
+                void* indices;
+                m_device->CreateIndexBuffer(256, 0, D3DFMT_INDEX32, D3DPOOL_DEFAULT, &indexBuffer, NULL);
+                indexBuffer->Lock(0, indices_size, reinterpret_cast<void**>(&indices), 0);
+                memcpy(indices, indices_values.data(), indices_size);
+                indexBuffer->Unlock();
 
-            m_totalTests++;
+                m_totalTests++;
 
-            m_device->BeginScene();
-            m_device->SetStreamSource(0, vertexBuffer.ptr(), 0, sizeof(RGBVERTEX));
-            m_device->SetIndices(indexBuffer.ptr());
-            m_device->SetFVF(RGBT_FVF_CODES);
-            // 8388607 is the highest reported cap I've seen (on modern Intel Windows drivers)
-            HRESULT statusDrawOneHigh  = m_device->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, 8, 0, 8388608);
-            HRESULT statusDrawZeroHigh = m_device->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, 0, 0, 8388608);
-            HRESULT statusDrawOneLow   = m_device->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, 8, 0, 1);
-            HRESULT statusDrawZeroLow  = m_device->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, 0, 0, 1);
-            m_device->EndScene();
+                m_device->BeginScene();
+                m_device->SetStreamSource(0, vertexBuffer.ptr(), 0, sizeof(RGBVERTEX));
+                m_device->SetIndices(indexBuffer.ptr());
+                m_device->SetFVF(RGBT_FVF_CODES);
+                // 8388607 is the highest reported cap I've seen (on modern Intel Windows drivers)
+                HRESULT statusDrawOneHigh  = m_device->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, 8, 0, 8388608);
+                HRESULT statusDrawZeroHigh = m_device->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, 0, 0, 8388608);
+                HRESULT statusDrawOneLow   = m_device->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, 8, 0, 1);
+                HRESULT statusDrawZeroLow  = m_device->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, 0, 0, 1);
+                m_device->EndScene();
 
-            if (SUCCEEDED(statusDrawOneHigh) && SUCCEEDED(statusDrawZeroHigh)
-             && SUCCEEDED(statusDrawOneLow)  && SUCCEEDED(statusDrawZeroLow)) {
-                m_passedTests++;
-                std::cout << "  + The DrawIndexedPrimitive max primCount test has passed" << std::endl;
+                if (SUCCEEDED(statusDrawOneHigh) && SUCCEEDED(statusDrawZeroHigh)
+                && SUCCEEDED(statusDrawOneLow)  && SUCCEEDED(statusDrawZeroLow)) {
+                    m_passedTests++;
+                    std::cout << "  + The DrawIndexedPrimitive max primCount test has passed" << std::endl;
+                } else {
+                    std::cout << "  - The DrawIndexedPrimitive max primCount has failed" << std::endl;
+                }
             } else {
-                std::cout << "  - The DrawIndexedPrimitive max primCount has failed" << std::endl;
+                std::cout << "  ~ The DrawIndexedPrimitive max primCount test did not run" << std::endl;
             }
         }
 
         // CreateDevice with various devices types test
         void testDeviceTypes() {
             // D3DDEVTYPE_REF and D3DDEVTYPE_NULLREF are available on Windows 8 and above
-            HRESULT statusHHAL = createDeviceWithFlags(&m_pp, D3DCREATE_HARDWARE_VERTEXPROCESSING, D3DDEVTYPE_HAL, false);
-            HRESULT statusHSW = createDeviceWithFlags(&m_pp, D3DCREATE_HARDWARE_VERTEXPROCESSING, D3DDEVTYPE_SW, false);
-            HRESULT statusSHAL = createDeviceWithFlags(&m_pp, D3DCREATE_SOFTWARE_VERTEXPROCESSING, D3DDEVTYPE_HAL, false);
-            HRESULT statusSSW = createDeviceWithFlags(&m_pp, D3DCREATE_SOFTWARE_VERTEXPROCESSING, D3DDEVTYPE_SW, false);
+            HRESULT statusHHAL;
+            HRESULT statusHSW;
+            if (!m_canOnlySWVP) {
+                statusHHAL = createDeviceWithFlags(&m_pp, D3DCREATE_HARDWARE_VERTEXPROCESSING, D3DDEVTYPE_HAL, false, false);
+                statusHSW = createDeviceWithFlags(&m_pp, D3DCREATE_HARDWARE_VERTEXPROCESSING, D3DDEVTYPE_SW, false, false);
+            } else {
+                statusHHAL = D3D_OK;
+                statusHSW = D3DERR_INVALIDCALL;
+            }
+            HRESULT statusSHAL = createDeviceWithFlags(&m_pp, D3DCREATE_SOFTWARE_VERTEXPROCESSING, D3DDEVTYPE_HAL, false, false);
+            HRESULT statusSSW = createDeviceWithFlags(&m_pp, D3DCREATE_SOFTWARE_VERTEXPROCESSING, D3DDEVTYPE_SW, false, false);
 
             m_totalTests++;
 
@@ -1324,7 +1352,7 @@ class RGBTriangle {
             // create a temporary DS surface
             Com<IDirect3DSurface9> tempDS;
             m_device->CreateDepthStencilSurface(RGBTriangle::WINDOW_WIDTH, RGBTriangle::WINDOW_HEIGHT,
-                                                D3DFMT_D24X8, D3DMULTISAMPLE_NONE, 0, FALSE, &tempDS, NULL);
+                                                D3DFMT_D16, D3DMULTISAMPLE_NONE, 0, FALSE, &tempDS, NULL);
 
             m_totalTests++;
             // according to D3D9 docs, I quote: "Reset will fail unless the application releases all resources
@@ -1344,7 +1372,6 @@ class RGBTriangle {
                 } else {
                     std::cout << "  - The D3DERR_DEVICENOTRESET state test has failed" << std::endl;
                 }
-
             } else {
                 std::cout << "  - The D3DPOOL_DEFAULT allocation & Reset test has failed" << std::endl;
                 std::cout << "  ~ The D3DERR_DEVICENOTRESET state test did not run" << std::endl;
@@ -1672,40 +1699,45 @@ class RGBTriangle {
 
         // Tests patch related calls
         void testPatchCalls() {
-            resetOrRecreateDevice();
+            // Patch draw calls aren't supported on early D3D cards, such as the Riva TNT2
+            if (!m_canOnlySWVP) {
+                resetOrRecreateDevice();
 
-            float             numSegs = 3;
-            D3DRECTPATCH_INFO rectPatchInfo = { };
-            D3DTRIPATCH_INFO  triPatchInfo = { };
+                float             numSegs = 3;
+                D3DRECTPATCH_INFO rectPatchInfo = { };
+                D3DTRIPATCH_INFO  triPatchInfo = { };
 
-            m_totalTests++;
+                m_totalTests++;
 
-            // All draw calls will return D3D_OK, even on a driver that
-            // does not implement any form of patches/TruForm
-            HRESULT rectStatusInv  = m_device->DrawRectPatch(0, &numSegs, NULL);
-            HRESULT triStatusInv   = m_device->DrawTriPatch(0, &numSegs, NULL);
-            HRESULT rectStatus     = m_device->DrawRectPatch(1, &numSegs, NULL);
-            HRESULT triStatus      = m_device->DrawTriPatch(2, &numSegs, NULL);
-            HRESULT rectStatus2    = m_device->DrawRectPatch(3, &numSegs, &rectPatchInfo);
-            HRESULT triStatus2     = m_device->DrawTriPatch(4, &numSegs, &triPatchInfo);
-            // All delete calls will fail on drivers that
-            // do not implement any form of patches/TruForm
-            HRESULT delOneStatus   = m_device->DeletePatch(1);
-            HRESULT delTwoStatus   = m_device->DeletePatch(2);
-            HRESULT delThreeStatus = m_device->DeletePatch(3);
-            HRESULT delFourStatus  = m_device->DeletePatch(4);
-            HRESULT delFiveStatus  = m_device->DeletePatch(5);
+                // All draw calls will return D3D_OK, even on a driver that
+                // does not implement any form of patches/TruForm
+                HRESULT rectStatusInv  = m_device->DrawRectPatch(0, &numSegs, NULL);
+                HRESULT triStatusInv   = m_device->DrawTriPatch(0, &numSegs, NULL);
+                HRESULT rectStatus     = m_device->DrawRectPatch(1, &numSegs, NULL);
+                HRESULT triStatus      = m_device->DrawTriPatch(2, &numSegs, NULL);
+                HRESULT rectStatus2    = m_device->DrawRectPatch(3, &numSegs, &rectPatchInfo);
+                HRESULT triStatus2     = m_device->DrawTriPatch(4, &numSegs, &triPatchInfo);
+                // All delete calls will fail on drivers that
+                // do not implement any form of patches/TruForm
+                HRESULT delOneStatus   = m_device->DeletePatch(1);
+                HRESULT delTwoStatus   = m_device->DeletePatch(2);
+                HRESULT delThreeStatus = m_device->DeletePatch(3);
+                HRESULT delFourStatus  = m_device->DeletePatch(4);
+                HRESULT delFiveStatus  = m_device->DeletePatch(5);
 
-            if (SUCCEEDED(rectStatusInv) && SUCCEEDED(triStatusInv)
-                && SUCCEEDED(rectStatus) && SUCCEEDED(triStatus)
-                && SUCCEEDED(rectStatus2) && SUCCEEDED(triStatus2)
-                && FAILED(delOneStatus) && FAILED(delTwoStatus) && FAILED(delThreeStatus)
-                && FAILED(delFourStatus) && FAILED(delFiveStatus)) {
-                m_passedTests++;
-                std::cout << "  + The patch calls test has passed" << std::endl;
-            // The test might fail on systems that actually support TruForm
+                if (SUCCEEDED(rectStatusInv) && SUCCEEDED(triStatusInv)
+                    && SUCCEEDED(rectStatus) && SUCCEEDED(triStatus)
+                    && SUCCEEDED(rectStatus2) && SUCCEEDED(triStatus2)
+                    && FAILED(delOneStatus) && FAILED(delTwoStatus) && FAILED(delThreeStatus)
+                    && FAILED(delFourStatus) && FAILED(delFiveStatus)) {
+                    m_passedTests++;
+                    std::cout << "  + The patch calls test has passed" << std::endl;
+                // The test might fail on systems that actually support TruForm
+                } else {
+                    std::cout << "  - The patch calls test has failed" << std::endl;
+                }
             } else {
-                std::cout << "  - The patch calls test has failed" << std::endl;
+                std::cout << "  ~ The patch calls test did not run" << std::endl;
             }
         }
 
@@ -1779,35 +1811,40 @@ class RGBTriangle {
 
         // Test UpdateTexture calls with various source/destination texture sizes
         void testUpdateTextureSizes() {
-            resetOrRecreateDevice();
+            // This test explodes on TNT2 cards, possibly due to a POW2 size restriction
+            if (!m_canOnlySWVP) {
+                resetOrRecreateDevice();
 
-            m_totalTests++;
+                m_totalTests++;
 
-            Com<IDirect3DTexture9> textureSrc1;
-            Com<IDirect3DTexture9> textureDst1;
-            Com<IDirect3DTexture9> textureSrc2;
-            Com<IDirect3DTexture9> textureDst2;
-            Com<IDirect3DTexture9> textureSrc3;
-            Com<IDirect3DTexture9> textureDst3;
+                Com<IDirect3DTexture9> textureSrc1;
+                Com<IDirect3DTexture9> textureDst1;
+                Com<IDirect3DTexture9> textureSrc2;
+                Com<IDirect3DTexture9> textureDst2;
+                Com<IDirect3DTexture9> textureSrc3;
+                Com<IDirect3DTexture9> textureDst3;
 
-            // This passes on native
-            m_device->CreateTexture(320, 554, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_SYSTEMMEM, &textureSrc1, NULL);
-            m_device->CreateTexture(320, 556, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &textureDst1, NULL);
-            HRESULT status1 = m_device->UpdateTexture(textureSrc1.ptr(), textureDst1.ptr());
-            // This also passes on native
-            m_device->CreateTexture(160, 278, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_SYSTEMMEM, &textureSrc2, NULL);
-            m_device->CreateTexture(320, 556, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &textureDst2, NULL);
-            // ... and even this passes on native
-            HRESULT status2 = m_device->UpdateTexture(textureSrc2.ptr(), textureDst2.ptr());
-            m_device->CreateTexture(360, 590, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_SYSTEMMEM, &textureSrc3, NULL);
-            m_device->CreateTexture(320, 556, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &textureDst3, NULL);
-            HRESULT status3 = m_device->UpdateTexture(textureSrc3.ptr(), textureDst3.ptr());
+                // This passes on native
+                m_device->CreateTexture(320, 554, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_SYSTEMMEM, &textureSrc1, NULL);
+                m_device->CreateTexture(320, 556, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &textureDst1, NULL);
+                HRESULT status1 = m_device->UpdateTexture(textureSrc1.ptr(), textureDst1.ptr());
+                // This also passes on native
+                m_device->CreateTexture(160, 278, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_SYSTEMMEM, &textureSrc2, NULL);
+                m_device->CreateTexture(320, 556, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &textureDst2, NULL);
+                // ... and even this passes on native
+                HRESULT status2 = m_device->UpdateTexture(textureSrc2.ptr(), textureDst2.ptr());
+                m_device->CreateTexture(360, 590, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_SYSTEMMEM, &textureSrc3, NULL);
+                m_device->CreateTexture(320, 556, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &textureDst3, NULL);
+                HRESULT status3 = m_device->UpdateTexture(textureSrc3.ptr(), textureDst3.ptr());
 
-            if (SUCCEEDED(status1) && SUCCEEDED(status2) && SUCCEEDED(status3)) {
-                m_passedTests++;
-                std::cout << "  + The UpdateTexture sizes test has passed" << std::endl;
+                if (SUCCEEDED(status1) && SUCCEEDED(status2) && SUCCEEDED(status3)) {
+                    m_passedTests++;
+                    std::cout << "  + The UpdateTexture sizes test has passed" << std::endl;
+                } else {
+                    std::cout << "  - The UpdateTexture sizes test has failed" << std::endl;
+                }
             } else {
-                std::cout << "  - The UpdateTexture sizes test has failed" << std::endl;
+                std::cout << "  ~ The UpdateTexture sizes test did not run" << std::endl;
             }
         }
 
@@ -1975,7 +2012,7 @@ class RGBTriangle {
 
             // DF formats will not be supported on Nvidia, but should work on AMD/Intel
             if (FAILED(statusDF16) && FAILED(statusDF24)) {
-                std::cout << "  ~ The DF formats test was skipped" << std::endl;
+                std::cout << "  ~ The DF formats test did not run" << std::endl;
             } else {
                 m_totalTests++;
                 m_passedTests++;
@@ -2056,7 +2093,7 @@ class RGBTriangle {
         }
 
         void prepare() {
-            createDeviceWithFlags(&m_pp, D3DCREATE_HARDWARE_VERTEXPROCESSING, D3DDEVTYPE_HAL, true);
+            createDeviceWithFlags(&m_pp, D3DCREATE_HARDWARE_VERTEXPROCESSING, D3DDEVTYPE_HAL, true, true);
 
             // don't need any of these for 2D rendering
             HRESULT status = m_device->SetRenderState(D3DRS_ZENABLE, D3DZB_FALSE);
@@ -2117,6 +2154,7 @@ class RGBTriangle {
         HRESULT createDeviceWithFlags(D3DPRESENT_PARAMETERS* presentParams,
                                       DWORD behaviorFlags,
                                       D3DDEVTYPE deviceType,
+                                      bool fallBackToSWVP,
                                       bool throwErrorOnFail) {
             if (m_d3d == nullptr)
                 throw Error("The D3D9 interface hasn't been initialized");
@@ -2125,9 +2163,27 @@ class RGBTriangle {
 
             HRESULT status = m_d3d->CreateDevice(D3DADAPTER_DEFAULT, deviceType, m_hWnd,
                                                  behaviorFlags, presentParams, &m_device);
+            // Older cards, such as the Riva TNT2, will fail to create a HWVP device
+            if (FAILED(status)) {
+                if (fallBackToSWVP) {
+                    behaviorFlags &= ~D3DCREATE_MIXED_VERTEXPROCESSING &
+                                    ~D3DCREATE_HARDWARE_VERTEXPROCESSING &
+                                    ~D3DCREATE_PUREDEVICE;
+                    behaviorFlags |= D3DCREATE_SOFTWARE_VERTEXPROCESSING;
 
-            if (throwErrorOnFail && FAILED(status))
-                throw Error("Failed to create D3D9 device");
+                    status = m_d3d->CreateDevice(D3DADAPTER_DEFAULT, deviceType, m_hWnd,
+                                                behaviorFlags, presentParams, &m_device);
+                    if (FAILED(status)) {
+                        if (throwErrorOnFail)
+                            throw Error("Failed to create D3D9 device");
+                    } else {
+                        m_canOnlySWVP = true;
+                    }
+                } else {
+                    if (throwErrorOnFail)
+                        throw Error("Failed to create D3D9 device");
+                }
+            }
 
             return status;
         }
@@ -2150,11 +2206,22 @@ class RGBTriangle {
                                          D3DCREATE_HARDWARE_VERTEXPROCESSING,
                                          &m_pp, &m_device);
 
-            if (FAILED(status))
-                throw Error("Failed to create D3D9 device");
+            // Older cards, such as the Riva TNT2, will fail to create a HWVP device
+            if (FAILED(status)) {
+                status = m_d3d->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, m_hWnd,
+                                             D3DCREATE_SOFTWARE_VERTEXPROCESSING,
+                                             &m_pp, &m_device);
+                if (FAILED(status)) {
+                    throw Error("Failed to create D3D9 device");
+                } else {
+                    m_canOnlySWVP = true;
+                }
+            }
 
             return status;
         }
+
+        bool                          m_canOnlySWVP = false;
 
         HWND                          m_hWnd;
 

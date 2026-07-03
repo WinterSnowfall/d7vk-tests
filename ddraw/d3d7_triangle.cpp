@@ -55,9 +55,9 @@ class RGBTriangle {
 
     public:
 
-        static constexpr IID IID_IDirect3DTnLHalDevice  = { 0xF5049E78, 0x4861, 0x11D2, {0xA4, 0x07, 0x00, 0xA0, 0xC9, 0x06, 0x29, 0xA8} };
-        static constexpr IID IID_IDirect3DHALDevice     = { 0x84E63DE0, 0x46AA, 0x11CF, {0x81, 0x6F, 0x00, 0x00, 0xC0, 0x20, 0x15, 0x6E} };
-        static constexpr IID IID_IDirect3DRGBDevice     = { 0xA4665C60, 0x2673, 0x11CF, {0xA3, 0x1A, 0x00, 0xAA, 0x00, 0xB9, 0x33, 0x56} };
+        static constexpr IID IID_IDirect3DTnLHalDevice = { 0xF5049E78, 0x4861, 0x11D2, {0xA4, 0x07, 0x00, 0xA0, 0xC9, 0x06, 0x29, 0xA8} };
+        static constexpr IID IID_IDirect3DHALDevice    = { 0x84E63DE0, 0x46AA, 0x11CF, {0x81, 0x6F, 0x00, 0x00, 0xC0, 0x20, 0x15, 0x6E} };
+        static constexpr IID IID_IDirect3DRGBDevice    = { 0xA4665C60, 0x2673, 0x11CF, {0xA3, 0x1A, 0x00, 0xAA, 0x00, 0xB9, 0x33, 0x56} };
 
         static constexpr const char* TRIANGLE_ID    = "D3D7_Triangle";
         static constexpr const char* TRIANGLE_TITLE = "D3D7 Triangle - Blisto Ancient Testing Edition";
@@ -159,7 +159,7 @@ class RGBTriangle {
             if (FAILED(status))
                 throw Error("Failed to create D3D7 interface");
 
-            createDeviceWithFlags(IID_IDirect3DTnLHalDevice, true);
+            createDeviceWithFlags(IID_IDirect3DTnLHalDevice, true, true);
         }
 
         // D3D Adapter Display Mode enumeration
@@ -182,11 +182,11 @@ class RGBTriangle {
             D3DDEVICEDESC7 caps7RGB = { };
 
             // get the capabilities from the D3D device in HAL mode
-            createDeviceWithFlags(IID_IDirect3DTnLHalDevice, true);
+            createDeviceWithFlags(IID_IDirect3DTnLHalDevice, true, true);
             m_device->GetCaps(&caps7TNLHAL);
 
             // get the capabilities from the D3D device in RGB mode
-            createDeviceWithFlags(IID_IDirect3DRGBDevice, true);
+            createDeviceWithFlags(IID_IDirect3DRGBDevice, true, true);
             m_device->GetCaps(&caps7RGB);
 
             std::cout << std::endl << "Listing device capabilities support:" << std::endl;
@@ -314,7 +314,7 @@ class RGBTriangle {
         }
 
         void listAvailableTextureMemory() {
-            createDeviceWithFlags(IID_IDirect3DTnLHalDevice, true);
+            createDeviceWithFlags(IID_IDirect3DTnLHalDevice, true, true);
 
             std::cout << std::endl << "Listing available texture memory:" << std::endl;
 
@@ -339,7 +339,7 @@ class RGBTriangle {
 
         // Test setting a viewport with zero MinZ/MaxZ
         void testZeroViewport() {
-            createDeviceWithFlags(IID_IDirect3DTnLHalDevice, true);
+            createDeviceWithFlags(IID_IDirect3DTnLHalDevice, true, true);
 
             m_totalTests++;
 
@@ -366,7 +366,7 @@ class RGBTriangle {
 
         // Test creating a surface with an invalid mip map count vs surface size
         void testMipMapLevels() {
-            createDeviceWithFlags(IID_IDirect3DTnLHalDevice, true);
+            createDeviceWithFlags(IID_IDirect3DTnLHalDevice, true, true);
 
             m_totalTests++;
 
@@ -414,7 +414,7 @@ class RGBTriangle {
 
         // Test setting various invalid light types
         void testSetInvalidLightType() {
-            createDeviceWithFlags(IID_IDirect3DTnLHalDevice, true);
+            createDeviceWithFlags(IID_IDirect3DTnLHalDevice, true, true);
 
             D3DLIGHT7 validLight = { };
             validLight.dltType        = D3DLIGHT_POINT;
@@ -456,7 +456,7 @@ class RGBTriangle {
 
         // Test setting a few render states which are obsolete in D3D7
         void testObsoleteRenderStates() {
-            createDeviceWithFlags(IID_IDirect3DTnLHalDevice, true);
+            createDeviceWithFlags(IID_IDirect3DTnLHalDevice, true, true);
 
             m_totalTests++;
 
@@ -478,7 +478,7 @@ class RGBTriangle {
         }
 
         void prepare() {
-            createDeviceWithFlags(IID_IDirect3DTnLHalDevice, true);
+            createDeviceWithFlags(IID_IDirect3DTnLHalDevice, true, true);
 
             // don't need any of these for 2D rendering
             HRESULT status = m_device->SetRenderState(D3DRENDERSTATE_ZENABLE, D3DZB_FALSE);
@@ -540,6 +540,7 @@ class RGBTriangle {
     private:
 
         HRESULT createDeviceWithFlags(IID deviceIID,
+                                      bool fallBackToHAL,
                                       bool throwErrorOnFail) {
             if (m_d3d == nullptr)
                 throw Error("The D3D7 interface hasn't been initialized");
@@ -550,8 +551,17 @@ class RGBTriangle {
             m_device = nullptr;
 
             HRESULT status = m_d3d->CreateDevice(deviceIID, m_rt.ptr(), &m_device);
-            if (throwErrorOnFail && FAILED(status))
-                throw Error("Failed to create D3D7 device");
+            // Older cards, such as the Riva TNT2, will fail to create a TnL HAL device
+            if (FAILED(status)) {
+                if (fallBackToHAL) {
+                    status = m_d3d->CreateDevice(IID_IDirect3DHALDevice, m_rt.ptr(), &m_device);
+                    if (throwErrorOnFail && FAILED(status))
+                        throw Error("Failed to create D3D7 device");
+                } else {
+                    if (throwErrorOnFail)
+                        throw Error("Failed to create D3D7 device");
+                }
+            }
 
             return status;
         }
