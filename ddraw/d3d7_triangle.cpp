@@ -286,13 +286,117 @@ class RGBTriangle {
             else
                 std::cout << "  - D3DDEVCAPS_TLVERTEXVIDEOMEMORY is not supported" << std::endl;
 
+            if (caps7TNLHAL.dpcTriCaps.dwMiscCaps & D3DPMISCCAPS_CONFORMANT)
+                std::cout << "  + D3DPMISCCAPS_CONFORMANT is supported" << std::endl;
+            else
+                std::cout << "  - D3DPMISCCAPS_CONFORMANT is not supported" << std::endl;
+
+            if (caps7TNLHAL.dpcTriCaps.dwMiscCaps & D3DPMISCCAPS_LINEPATTERNREP)
+                std::cout << "  + D3DPMISCCAPS_LINEPATTERNREP is supported" << std::endl;
+            else
+                std::cout << "  - D3DPMISCCAPS_LINEPATTERNREP is not supported" << std::endl;
+
+            if (caps7TNLHAL.dpcTriCaps.dwMiscCaps & D3DPMISCCAPS_MASKPLANES)
+                std::cout << "  + D3DPMISCCAPS_MASKPLANES is supported" << std::endl;
+            else
+                std::cout << "  - D3DPMISCCAPS_MASKPLANES is not supported" << std::endl;
+
+            if (caps7TNLHAL.dpcTriCaps.dwMiscCaps & D3DPMISCCAPS_MASKZ)
+                std::cout << "  + D3DPMISCCAPS_MASKZ is supported" << std::endl;
+            else
+                std::cout << "  - D3DPMISCCAPS_MASKZ is not supported" << std::endl;
+
+            if (caps7TNLHAL.dpcTriCaps.dwRasterCaps & D3DPRASTERCAPS_ANTIALIASEDGES)
+                std::cout << "  + D3DPRASTERCAPS_ANTIALIASEDGES is supported" << std::endl;
+            else
+                std::cout << "  - D3DPRASTERCAPS_ANTIALIASEDGES is not supported" << std::endl;
+
+            if (caps7TNLHAL.dpcTriCaps.dwRasterCaps & D3DPRASTERCAPS_ANTIALIASSORTDEPENDENT)
+                std::cout << "  + D3DPRASTERCAPS_ANTIALIASSORTDEPENDENT is supported" << std::endl;
+            else
+                std::cout << "  - D3DPRASTERCAPS_ANTIALIASSORTDEPENDENT is not supported" << std::endl;
+
+            if (caps7TNLHAL.dpcTriCaps.dwRasterCaps & D3DPRASTERCAPS_ANTIALIASSORTINDEPENDENT)
+                std::cout << "  + D3DPRASTERCAPS_ANTIALIASSORTINDEPENDENT is supported" << std::endl;
+            else
+                std::cout << "  - D3DPRASTERCAPS_ANTIALIASSORTINDEPENDENT is not supported" << std::endl;
+
+            if (caps7TNLHAL.dpcTriCaps.dwRasterCaps & D3DPRASTERCAPS_DITHER)
+                std::cout << "  + D3DPRASTERCAPS_DITHER is supported" << std::endl;
+            else
+                std::cout << "  - D3DPRASTERCAPS_DITHER is not supported" << std::endl;
+
+            if (caps7TNLHAL.dpcTriCaps.dwRasterCaps & D3DPRASTERCAPS_PAT)
+                std::cout << "  + D3DPRASTERCAPS_PAT is supported" << std::endl;
+            else
+                std::cout << "  - D3DPRASTERCAPS_PAT is not supported" << std::endl;
+
+            if (caps7TNLHAL.dpcTriCaps.dwRasterCaps & D3DPRASTERCAPS_STIPPLE)
+                std::cout << "  + D3DPRASTERCAPS_STIPPLE is supported" << std::endl;
+            else
+                std::cout << "  - D3DPRASTERCAPS_STIPPLE is not supported" << std::endl;
+
+            if (caps7TNLHAL.dpcTriCaps.dwRasterCaps & D3DPRASTERCAPS_SUBPIXEL)
+                std::cout << "  + D3DPRASTERCAPS_SUBPIXEL is supported" << std::endl;
+            else
+                std::cout << "  - D3DPRASTERCAPS_SUBPIXEL is not supported" << std::endl;
+
+            if (caps7TNLHAL.dpcTriCaps.dwRasterCaps & D3DPRASTERCAPS_SUBPIXELX)
+                std::cout << "  + D3DPRASTERCAPS_SUBPIXELX is supported" << std::endl;
+            else
+                std::cout << "  - D3DPRASTERCAPS_SUBPIXELX is not supported" << std::endl;
+
+            if (caps7TNLHAL.dpcTriCaps.dwRasterCaps & D3DPRASTERCAPS_TRANSLUCENTSORTINDEPENDENT)
+                std::cout << "  + D3DPRASTERCAPS_TRANSLUCENTSORTINDEPENDENT is supported" << std::endl;
+            else
+                std::cout << "  - D3DPRASTERCAPS_TRANSLUCENTSORTINDEPENDENT is not supported" << std::endl;
+
+            if (caps7TNLHAL.dpcTriCaps.dwRasterCaps & D3DPRASTERCAPS_ROP2)
+                std::cout << "  + D3DPRASTERCAPS_ROP2 is supported" << std::endl;
+            else
+                std::cout << "  - D3DPRASTERCAPS_ROP2 is not supported" << std::endl;
+
+            if (caps7TNLHAL.dpcTriCaps.dwRasterCaps & D3DPRASTERCAPS_XOR)
+                std::cout << "  + D3DPRASTERCAPS_XOR is supported" << std::endl;
+            else
+                std::cout << "  - D3DPRASTERCAPS_XOR is not supported" << std::endl;
+
             if (caps7TNLHAL.dpcTriCaps.dwRasterCaps & D3DPRASTERCAPS_WBUFFER)
                 std::cout << "  + D3DPRASTERCAPS_WBUFFER is supported" << std::endl;
             else
                 std::cout << "  - D3DPRASTERCAPS_WBUFFER is not supported" << std::endl;
 
+            if (caps7TNLHAL.dpcTriCaps.dwTextureCaps & D3DPTEXTURECAPS_POW2)
+                std::cout << "  + D3DPTEXTURECAPS_POW2 is supported" << std::endl;
+            else
+                std::cout << "  - D3DPTEXTURECAPS_POW2 is not supported" << std::endl;
+
+            if (caps7TNLHAL.dpcTriCaps.dwTextureCaps & D3DPTEXTURECAPS_NONPOW2CONDITIONAL)
+                std::cout << "  + D3DPTEXTURECAPS_NONPOW2CONDITIONAL is supported" << std::endl;
+            else
+                std::cout << "  - D3DPTEXTURECAPS_NONPOW2CONDITIONAL is not supported" << std::endl;
+
+            if (caps7TNLHAL.dpcTriCaps.dwTextureCaps & D3DPTEXTURECAPS_TRANSPARENCY)
+                std::cout << "  + D3DPTEXTURECAPS_TRANSPARENCY is supported" << std::endl;
+            else
+                std::cout << "  - D3DPTEXTURECAPS_TRANSPARENCY is not supported" << std::endl;
+
+            if (caps7TNLHAL.dpcTriCaps.dwTextureCaps & D3DPTEXTURECAPS_COLORKEYBLEND)
+                std::cout << "  + D3DPTEXTURECAPS_COLORKEYBLEND is supported" << std::endl;
+            else
+                std::cout << "  - D3DPTEXTURECAPS_COLORKEYBLEND is not supported" << std::endl;
+
+            if (caps7TNLHAL.dpcTriCaps.dwTextureCaps & D3DPTEXTURECAPS_CUBEMAP)
+                std::cout << "  + D3DPTEXTURECAPS_CUBEMAP is supported" << std::endl;
+            else
+                std::cout << "  - D3DPTEXTURECAPS_CUBEMAP is not supported" << std::endl;
+
             std::cout << std::endl << "Listing device capability limits:" << std::endl;
 
+            std::cout << format("  ~ dpcLineCaps.dwStippleWidth: ", caps7TNLHAL.dpcLineCaps.dwStippleWidth) << std::endl;
+            std::cout << format("  ~ dpcLineCaps.dwStippleWidth: ", caps7TNLHAL.dpcLineCaps.dwStippleHeight) << std::endl;
+            std::cout << format("  ~ dcpTriCaps.dwStippleWidth: ", caps7TNLHAL.dpcTriCaps.dwStippleWidth) << std::endl;
+            std::cout << format("  ~ dcpTriCaps.dwStippleWidth: ", caps7TNLHAL.dpcTriCaps.dwStippleHeight) << std::endl;
             std::cout << format("  ~ dwMinTextureWidth: ", caps7TNLHAL.dwMinTextureWidth) << std::endl;
             std::cout << format("  ~ dwMinTextureHeight: ", caps7TNLHAL.dwMinTextureHeight) << std::endl;
             std::cout << format("  ~ dwMaxTextureWidth: ", caps7TNLHAL.dwMaxTextureWidth) << std::endl;
@@ -383,7 +487,7 @@ class RGBTriangle {
             // Outright fails on native, but we have to account for WineD3D behavior
             if (FAILED(status)) {
                 m_passedTests++;
-                std::cout << "  + The mip map level test has succeded" << std::endl;
+                std::cout << "  + The mip map level test has passed" << std::endl;
             } else {
                 Com<IDirectDrawSurface7> mip7 = tex7;
                 uint32_t mipCount = 1;
@@ -407,7 +511,7 @@ class RGBTriangle {
                     std::cout << "  - The mip map level test has failed" << std::endl;
                 } else {
                     m_passedTests++;
-                    std::cout << "  + The mip map level test has succeded" << std::endl;
+                    std::cout << "  + The mip map level test has passed" << std::endl;
                 }
             }
         }
@@ -467,7 +571,7 @@ class RGBTriangle {
 
             if (FAILED(status1) && FAILED(status2) && FAILED(status3) && FAILED(status4)) {
                 m_passedTests++;
-                std::cout << "  + The obsolete render state test has succeded" << std::endl;
+                std::cout << "  + The obsolete render state test has passed" << std::endl;
             } else {
                 std::cout << "  - The obsolete render state test has failed" << std::endl;
             }

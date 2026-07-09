@@ -679,10 +679,10 @@ class RGBTriangle {
             else
                 std::cout << "  - D3DPMISCCAPS_POSTBLENDSRGBCONVERT is not supported" << std::endl;
 
-            if (caps9.RasterCaps & D3DPRASTERCAPS_WBUFFER)
-                std::cout << "  + D3DPRASTERCAPS_WBUFFER is supported" << std::endl;
+            if (caps9.RasterCaps & D3DPRASTERCAPS_DITHER)
+                std::cout << "  + D3DPRASTERCAPS_DITHER is supported" << std::endl;
             else
-                std::cout << "  - D3DPRASTERCAPS_WBUFFER is not supported" << std::endl;
+                std::cout << "  - D3DPRASTERCAPS_DITHER is not supported" << std::endl;
 
             if (caps9.RasterCaps & D3DPRASTERCAPS_SCISSORTEST)
                 std::cout << "  + D3DPRASTERCAPS_SCISSORTEST is supported" << std::endl;
@@ -703,6 +703,11 @@ class RGBTriangle {
                 std::cout << "  + D3DPRASTERCAPS_MULTISAMPLE_TOGGLE is supported" << std::endl;
             else
                 std::cout << "  - D3DPRASTERCAPS_MULTISAMPLE_TOGGLE is not supported" << std::endl;
+
+            if (caps9.RasterCaps & D3DPRASTERCAPS_WBUFFER)
+                std::cout << "  + D3DPRASTERCAPS_WBUFFER is supported" << std::endl;
+            else
+                std::cout << "  - D3DPRASTERCAPS_WBUFFER is not supported" << std::endl;
 
             if (caps9.SrcBlendCaps & D3DPBLENDCAPS_BLENDFACTOR)
                 std::cout << "  + D3DPBLENDCAPS_BLENDFACTOR (Src) is supported" << std::endl;
@@ -733,6 +738,36 @@ class RGBTriangle {
                 std::cout << "  + D3DPBLENDCAPS_SRCCOLOR2 (Dest) is supported" << std::endl;
             else
                 std::cout << "  - D3DPBLENDCAPS_SRCCOLOR2 (Dest) is not supported" << std::endl;
+
+            if (caps9.TextureCaps & D3DPTEXTURECAPS_POW2)
+                std::cout << "  + D3DPTEXTURECAPS_POW2 is supported" << std::endl;
+            else
+                std::cout << "  - D3DPTEXTURECAPS_POW2 is not supported" << std::endl;
+
+            if (caps9.TextureCaps & D3DPTEXTURECAPS_NONPOW2CONDITIONAL)
+                std::cout << "  + D3DPTEXTURECAPS_NONPOW2CONDITIONAL is supported" << std::endl;
+            else
+                std::cout << "  - D3DPTEXTURECAPS_NONPOW2CONDITIONAL is not supported" << std::endl;
+
+            if (caps9.TextureCaps & D3DPTEXTURECAPS_CUBEMAP)
+                std::cout << "  + D3DPTEXTURECAPS_CUBEMAP is supported" << std::endl;
+            else
+                std::cout << "  - D3DPTEXTURECAPS_CUBEMAP is not supported" << std::endl;
+
+            if (caps9.TextureCaps & D3DPTEXTURECAPS_CUBEMAP_POW2)
+                std::cout << "  + D3DPTEXTURECAPS_CUBEMAP_POW2 is supported" << std::endl;
+            else
+                std::cout << "  - D3DPTEXTURECAPS_CUBEMAP_POW2 is not supported" << std::endl;
+
+            if (caps9.TextureCaps & D3DPTEXTURECAPS_VOLUMEMAP)
+                std::cout << "  + D3DPTEXTURECAPS_VOLUMEMAP is supported" << std::endl;
+            else
+                std::cout << "  - D3DPTEXTURECAPS_VOLUMEMAP is not supported" << std::endl;
+
+            if (caps9.TextureCaps & D3DPTEXTURECAPS_VOLUMEMAP_POW2)
+                std::cout << "  + D3DPTEXTURECAPS_VOLUMEMAP_POW2 is supported" << std::endl;
+            else
+                std::cout << "  - D3DPTEXTURECAPS_VOLUMEMAP_POW2 is not supported" << std::endl;
 
             if (caps9.TextureFilterCaps & D3DPTFILTERCAPS_CONVOLUTIONMONO)
                 std::cout << "  + D3DPTFILTERCAPS_CONVOLUTIONMONO is (texture) supported" << std::endl;

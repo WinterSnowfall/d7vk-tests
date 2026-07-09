@@ -298,13 +298,87 @@ class RGBTriangle {
             else
                 std::cout << "  - D3DDEVCAPS_TLVERTEXVIDEOMEMORY is not supported" << std::endl;
 
+            if (caps3HAL.dpcTriCaps.dwMiscCaps & D3DPMISCCAPS_CONFORMANT)
+                std::cout << "  + D3DPMISCCAPS_CONFORMANT is supported" << std::endl;
+            else
+                std::cout << "  - D3DPMISCCAPS_CONFORMANT is not supported" << std::endl;
+
+            if (caps3HAL.dpcTriCaps.dwMiscCaps & D3DPMISCCAPS_LINEPATTERNREP)
+                std::cout << "  + D3DPMISCCAPS_LINEPATTERNREP is supported" << std::endl;
+            else
+                std::cout << "  - D3DPMISCCAPS_LINEPATTERNREP is not supported" << std::endl;
+
+            if (caps3HAL.dpcTriCaps.dwMiscCaps & D3DPMISCCAPS_MASKPLANES)
+                std::cout << "  + D3DPMISCCAPS_MASKPLANES is supported" << std::endl;
+            else
+                std::cout << "  - D3DPMISCCAPS_MASKPLANES is not supported" << std::endl;
+
+            if (caps3HAL.dpcTriCaps.dwMiscCaps & D3DPMISCCAPS_MASKZ)
+                std::cout << "  + D3DPMISCCAPS_MASKZ is supported" << std::endl;
+            else
+                std::cout << "  - D3DPMISCCAPS_MASKZ is not supported" << std::endl;
+
+            if (caps3HAL.dpcTriCaps.dwRasterCaps & D3DPRASTERCAPS_DITHER)
+                std::cout << "  + D3DPRASTERCAPS_DITHER is supported" << std::endl;
+            else
+                std::cout << "  - D3DPRASTERCAPS_DITHER is not supported" << std::endl;
+
+            if (caps3HAL.dpcTriCaps.dwRasterCaps & D3DPRASTERCAPS_PAT)
+                std::cout << "  + D3DPRASTERCAPS_PAT is supported" << std::endl;
+            else
+                std::cout << "  - D3DPRASTERCAPS_PAT is not supported" << std::endl;
+
+            if (caps3HAL.dpcTriCaps.dwRasterCaps & D3DPRASTERCAPS_STIPPLE)
+                std::cout << "  + D3DPRASTERCAPS_STIPPLE is supported" << std::endl;
+            else
+                std::cout << "  - D3DPRASTERCAPS_STIPPLE is not supported" << std::endl;
+
+            if (caps3HAL.dpcTriCaps.dwRasterCaps & D3DPRASTERCAPS_SUBPIXEL)
+                std::cout << "  + D3DPRASTERCAPS_SUBPIXEL is supported" << std::endl;
+            else
+                std::cout << "  - D3DPRASTERCAPS_SUBPIXEL is not supported" << std::endl;
+
+            if (caps3HAL.dpcTriCaps.dwRasterCaps & D3DPRASTERCAPS_SUBPIXELX)
+                std::cout << "  + D3DPRASTERCAPS_SUBPIXELX is supported" << std::endl;
+            else
+                std::cout << "  - D3DPRASTERCAPS_SUBPIXELX is not supported" << std::endl;
+
+            if (caps3HAL.dpcTriCaps.dwRasterCaps & D3DPRASTERCAPS_ROP2)
+                std::cout << "  + D3DPRASTERCAPS_ROP2 is supported" << std::endl;
+            else
+                std::cout << "  - D3DPRASTERCAPS_ROP2 is not supported" << std::endl;
+
+            if (caps3HAL.dpcTriCaps.dwRasterCaps & D3DPRASTERCAPS_XOR)
+                std::cout << "  + D3DPRASTERCAPS_XOR is supported" << std::endl;
+            else
+                std::cout << "  - D3DPRASTERCAPS_XOR is not supported" << std::endl;
+
             if (caps3HAL.dpcTriCaps.dwRasterCaps & D3DPRASTERCAPS_WBUFFER)
                 std::cout << "  + D3DPRASTERCAPS_WBUFFER is supported" << std::endl;
             else
                 std::cout << "  - D3DPRASTERCAPS_WBUFFER is not supported" << std::endl;
 
+            if (caps3HAL.dpcTriCaps.dwTextureCaps & D3DPTEXTURECAPS_POW2)
+                std::cout << "  + D3DPTEXTURECAPS_POW2 is supported" << std::endl;
+            else
+                std::cout << "  - D3DPTEXTURECAPS_POW2 is not supported" << std::endl;
+
+            if (caps3HAL.dpcTriCaps.dwTextureCaps & D3DPTEXTURECAPS_NONPOW2CONDITIONAL)
+                std::cout << "  + D3DPTEXTURECAPS_NONPOW2CONDITIONAL is supported" << std::endl;
+            else
+                std::cout << "  - D3DPTEXTURECAPS_NONPOW2CONDITIONAL is not supported" << std::endl;
+
+            if (caps3HAL.dpcTriCaps.dwTextureCaps & D3DPTEXTURECAPS_TRANSPARENCY)
+                std::cout << "  + D3DPTEXTURECAPS_TRANSPARENCY is supported" << std::endl;
+            else
+                std::cout << "  - D3DPTEXTURECAPS_TRANSPARENCY is not supported" << std::endl;
+
             std::cout << std::endl << "Listing device capability limits:" << std::endl;
 
+            std::cout << format("  ~ dpcLineCaps.dwStippleWidth: ", caps3HAL.dpcLineCaps.dwStippleWidth) << std::endl;
+            std::cout << format("  ~ dpcLineCaps.dwStippleWidth: ", caps3HAL.dpcLineCaps.dwStippleHeight) << std::endl;
+            std::cout << format("  ~ dcpTriCaps.dwStippleWidth: ", caps3HAL.dpcTriCaps.dwStippleWidth) << std::endl;
+            std::cout << format("  ~ dcpTriCaps.dwStippleWidth: ", caps3HAL.dpcTriCaps.dwStippleHeight) << std::endl;
             std::cout << format("  ~ dwMaxBufferSize: ", caps3HAL.dwMaxBufferSize) << std::endl;
             std::cout << format("  ~ dwMaxVertexCount: ", caps3HAL.dwMaxVertexCount) << std::endl;
         }
@@ -334,7 +408,7 @@ class RGBTriangle {
                 std::cout << "  - The D3D3 interface test has failed" << std::endl;
             } else {
                 m_passedTests++;
-                std::cout << "  + The D3D3 interface test has succeded" << std::endl;
+                std::cout << "  + The D3D3 interface test has passed" << std::endl;
             }
         }
 

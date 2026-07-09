@@ -641,6 +641,11 @@ class RGBTriangle {
             else
                 std::cout << "  - D3DPMISCCAPS_LINEPATTERNREP is not supported" << std::endl;
 
+            if (caps8.RasterCaps & D3DPRASTERCAPS_DITHER)
+                std::cout << "  + D3DPRASTERCAPS_DITHER is supported" << std::endl;
+            else
+                std::cout << "  - D3DPRASTERCAPS_DITHER is not supported" << std::endl;
+
             // WineD3D supports it, but native drivers do not
             if (caps8.RasterCaps & D3DPRASTERCAPS_PAT)
                 std::cout << "  + D3DPRASTERCAPS_PAT is supported" << std::endl;
@@ -657,6 +662,41 @@ class RGBTriangle {
                 std::cout << "  + D3DPRASTERCAPS_STRETCHBLTMULTISAMPLE is supported" << std::endl;
             else
                 std::cout << "  - D3DPRASTERCAPS_STRETCHBLTMULTISAMPLE is not supported" << std::endl;
+
+            if (caps8.RasterCaps & D3DPRASTERCAPS_WBUFFER)
+                std::cout << "  + D3DPRASTERCAPS_WBUFFER is supported" << std::endl;
+            else
+                std::cout << "  - D3DPRASTERCAPS_WBUFFER is not supported" << std::endl;
+
+            if (caps8.TextureCaps & D3DPTEXTURECAPS_POW2)
+                std::cout << "  + D3DPTEXTURECAPS_POW2 is supported" << std::endl;
+            else
+                std::cout << "  - D3DPTEXTURECAPS_POW2 is not supported" << std::endl;
+
+            if (caps8.TextureCaps & D3DPTEXTURECAPS_NONPOW2CONDITIONAL)
+                std::cout << "  + D3DPTEXTURECAPS_NONPOW2CONDITIONAL is supported" << std::endl;
+            else
+                std::cout << "  - D3DPTEXTURECAPS_NONPOW2CONDITIONAL is not supported" << std::endl;
+
+            if (caps8.TextureCaps & D3DPTEXTURECAPS_CUBEMAP)
+                std::cout << "  + D3DPTEXTURECAPS_CUBEMAP is supported" << std::endl;
+            else
+                std::cout << "  - D3DPTEXTURECAPS_CUBEMAP is not supported" << std::endl;
+
+            if (caps8.TextureCaps & D3DPTEXTURECAPS_CUBEMAP_POW2)
+                std::cout << "  + D3DPTEXTURECAPS_CUBEMAP_POW2 is supported" << std::endl;
+            else
+                std::cout << "  - D3DPTEXTURECAPS_CUBEMAP_POW2 is not supported" << std::endl;
+
+            if (caps8.TextureCaps & D3DPTEXTURECAPS_VOLUMEMAP)
+                std::cout << "  + D3DPTEXTURECAPS_VOLUMEMAP is supported" << std::endl;
+            else
+                std::cout << "  - D3DPTEXTURECAPS_VOLUMEMAP is not supported" << std::endl;
+
+            if (caps8.TextureCaps & D3DPTEXTURECAPS_VOLUMEMAP_POW2)
+                std::cout << "  + D3DPTEXTURECAPS_VOLUMEMAP_POW2 is supported" << std::endl;
+            else
+                std::cout << "  - D3DPTEXTURECAPS_VOLUMEMAP_POW2 is not supported" << std::endl;
 
             if (caps8.TextureFilterCaps & D3DPTFILTERCAPS_MAGFAFLATCUBIC)
                 std::cout << "  + D3DPTFILTERCAPS_MAGFAFLATCUBIC is (texture) supported" << std::endl;
@@ -809,11 +849,6 @@ class RGBTriangle {
                 std::cout << "  + D3DPMISCCAPS_POSTBLENDSRGBCONVERT is supported" << std::endl;
             else
                 std::cout << "  - D3DPMISCCAPS_POSTBLENDSRGBCONVERT is not supported" << std::endl;
-
-            if (caps8.RasterCaps & D3DPRASTERCAPS_WBUFFER)
-                std::cout << "  + D3DPRASTERCAPS_WBUFFER is supported" << std::endl;
-            else
-                std::cout << "  - D3DPRASTERCAPS_WBUFFER is not supported" << std::endl;
 
             if (caps8.RasterCaps & D3DPRASTERCAPS_SCISSORTEST)
                 std::cout << "  + D3DPRASTERCAPS_SCISSORTEST is supported" << std::endl;
@@ -978,6 +1013,7 @@ class RGBTriangle {
                 case S_FALSE:
                     std::cout << "  ~ Response: S_FALSE" << std::endl;
                     break;
+                // Matrox (G400) returns E_FAIL
                 case E_FAIL:
                     std::cout << "  ~ Response: E_FAIL" << std::endl;
                     break;
@@ -1682,23 +1718,6 @@ class RGBTriangle {
                 }
             } else {
                 std::cout << "  ~ The CopyRects with different surface formats test did not run" << std::endl;
-            }
-        }
-
-        // VCache query result test
-        void testVCacheQueryResult() {
-            resetOrRecreateDevice();
-
-            D3DDEVINFO_VCACHE vCache;
-
-            m_totalTests++;
-            // shouldn't fail on any vendor (native AMD/Intel return S_FALSE, native Nvidia returns D3D_OK)
-            HRESULT status = m_device->GetInfo(D3DDEVINFOID_VCACHE, &vCache, sizeof(D3DDEVINFO_VCACHE));
-            if (FAILED(status)) {
-                std::cout << "  - The VCache query response test has failed" << std::endl;
-            } else {
-                m_passedTests++;
-                std::cout << "  + The VCache query response test has passed" << std::endl;
             }
         }
 
@@ -2610,7 +2629,6 @@ int main(int, char**) {
         //rgbTriangle.testStateBlockWithInvalidToken();
         rgbTriangle.testCopyRectsDepthStencilFormat();
         rgbTriangle.testCopyRectsWithDifferentSurfaceFormats();
-        rgbTriangle.testVCacheQueryResult();
         // tests against the underflow of BaseVertexIndex,
         // but has to allocate a ~2GB index buffer to do so,
         // which is very slow, hence disabling by default

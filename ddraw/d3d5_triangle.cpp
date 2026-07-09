@@ -306,13 +306,107 @@ class RGBTriangle {
             else
                 std::cout << "  - D3DDEVCAPS_TLVERTEXVIDEOMEMORY is not supported" << std::endl;
 
+            if (caps5HAL.dpcTriCaps.dwMiscCaps & D3DPMISCCAPS_CONFORMANT)
+                std::cout << "  + D3DPMISCCAPS_CONFORMANT is supported" << std::endl;
+            else
+                std::cout << "  - D3DPMISCCAPS_CONFORMANT is not supported" << std::endl;
+
+            if (caps5HAL.dpcTriCaps.dwMiscCaps & D3DPMISCCAPS_LINEPATTERNREP)
+                std::cout << "  + D3DPMISCCAPS_LINEPATTERNREP is supported" << std::endl;
+            else
+                std::cout << "  - D3DPMISCCAPS_LINEPATTERNREP is not supported" << std::endl;
+
+            if (caps5HAL.dpcTriCaps.dwMiscCaps & D3DPMISCCAPS_MASKPLANES)
+                std::cout << "  + D3DPMISCCAPS_MASKPLANES is supported" << std::endl;
+            else
+                std::cout << "  - D3DPMISCCAPS_MASKPLANES is not supported" << std::endl;
+
+            if (caps5HAL.dpcTriCaps.dwMiscCaps & D3DPMISCCAPS_MASKZ)
+                std::cout << "  + D3DPMISCCAPS_MASKZ is supported" << std::endl;
+            else
+                std::cout << "  - D3DPMISCCAPS_MASKZ is not supported" << std::endl;
+
+            if (caps5HAL.dpcTriCaps.dwRasterCaps & D3DPRASTERCAPS_ANTIALIASEDGES)
+                std::cout << "  + D3DPRASTERCAPS_ANTIALIASEDGES is supported" << std::endl;
+            else
+                std::cout << "  - D3DPRASTERCAPS_ANTIALIASEDGES is not supported" << std::endl;
+
+            if (caps5HAL.dpcTriCaps.dwRasterCaps & D3DPRASTERCAPS_ANTIALIASSORTDEPENDENT)
+                std::cout << "  + D3DPRASTERCAPS_ANTIALIASSORTDEPENDENT is supported" << std::endl;
+            else
+                std::cout << "  - D3DPRASTERCAPS_ANTIALIASSORTDEPENDENT is not supported" << std::endl;
+
+            if (caps5HAL.dpcTriCaps.dwRasterCaps & D3DPRASTERCAPS_ANTIALIASSORTINDEPENDENT)
+                std::cout << "  + D3DPRASTERCAPS_ANTIALIASSORTINDEPENDENT is supported" << std::endl;
+            else
+                std::cout << "  - D3DPRASTERCAPS_ANTIALIASSORTINDEPENDENT is not supported" << std::endl;
+
+            if (caps5HAL.dpcTriCaps.dwRasterCaps & D3DPRASTERCAPS_DITHER)
+                std::cout << "  + D3DPRASTERCAPS_DITHER is supported" << std::endl;
+            else
+                std::cout << "  - D3DPRASTERCAPS_DITHER is not supported" << std::endl;
+
+            if (caps5HAL.dpcTriCaps.dwRasterCaps & D3DPRASTERCAPS_PAT)
+                std::cout << "  + D3DPRASTERCAPS_PAT is supported" << std::endl;
+            else
+                std::cout << "  - D3DPRASTERCAPS_PAT is not supported" << std::endl;
+
+            if (caps5HAL.dpcTriCaps.dwRasterCaps & D3DPRASTERCAPS_STIPPLE)
+                std::cout << "  + D3DPRASTERCAPS_STIPPLE is supported" << std::endl;
+            else
+                std::cout << "  - D3DPRASTERCAPS_STIPPLE is not supported" << std::endl;
+
+            if (caps5HAL.dpcTriCaps.dwRasterCaps & D3DPRASTERCAPS_SUBPIXEL)
+                std::cout << "  + D3DPRASTERCAPS_SUBPIXEL is supported" << std::endl;
+            else
+                std::cout << "  - D3DPRASTERCAPS_SUBPIXEL is not supported" << std::endl;
+
+            if (caps5HAL.dpcTriCaps.dwRasterCaps & D3DPRASTERCAPS_SUBPIXELX)
+                std::cout << "  + D3DPRASTERCAPS_SUBPIXELX is supported" << std::endl;
+            else
+                std::cout << "  - D3DPRASTERCAPS_SUBPIXELX is not supported" << std::endl;
+
+            if (caps5HAL.dpcTriCaps.dwRasterCaps & D3DPRASTERCAPS_TRANSLUCENTSORTINDEPENDENT)
+                std::cout << "  + D3DPRASTERCAPS_TRANSLUCENTSORTINDEPENDENT is supported" << std::endl;
+            else
+                std::cout << "  - D3DPRASTERCAPS_TRANSLUCENTSORTINDEPENDENT is not supported" << std::endl;
+
+            if (caps5HAL.dpcTriCaps.dwRasterCaps & D3DPRASTERCAPS_ROP2)
+                std::cout << "  + D3DPRASTERCAPS_ROP2 is supported" << std::endl;
+            else
+                std::cout << "  - D3DPRASTERCAPS_ROP2 is not supported" << std::endl;
+
+            if (caps5HAL.dpcTriCaps.dwRasterCaps & D3DPRASTERCAPS_XOR)
+                std::cout << "  + D3DPRASTERCAPS_XOR is supported" << std::endl;
+            else
+                std::cout << "  - D3DPRASTERCAPS_XOR is not supported" << std::endl;
+
             if (caps5HAL.dpcTriCaps.dwRasterCaps & D3DPRASTERCAPS_WBUFFER)
                 std::cout << "  + D3DPRASTERCAPS_WBUFFER is supported" << std::endl;
             else
                 std::cout << "  - D3DPRASTERCAPS_WBUFFER is not supported" << std::endl;
 
+            if (caps5HAL.dpcTriCaps.dwTextureCaps & D3DPTEXTURECAPS_POW2)
+                std::cout << "  + D3DPTEXTURECAPS_POW2 is supported" << std::endl;
+            else
+                std::cout << "  - D3DPTEXTURECAPS_POW2 is not supported" << std::endl;
+
+            if (caps5HAL.dpcTriCaps.dwTextureCaps & D3DPTEXTURECAPS_NONPOW2CONDITIONAL)
+                std::cout << "  + D3DPTEXTURECAPS_NONPOW2CONDITIONAL is supported" << std::endl;
+            else
+                std::cout << "  - D3DPTEXTURECAPS_NONPOW2CONDITIONAL is not supported" << std::endl;
+
+            if (caps5HAL.dpcTriCaps.dwTextureCaps & D3DPTEXTURECAPS_TRANSPARENCY)
+                std::cout << "  + D3DPTEXTURECAPS_TRANSPARENCY is supported" << std::endl;
+            else
+                std::cout << "  - D3DPTEXTURECAPS_TRANSPARENCY is not supported" << std::endl;
+
             std::cout << std::endl << "Listing device capability limits:" << std::endl;
 
+            std::cout << format("  ~ dpcLineCaps.dwStippleWidth: ", caps5HAL.dpcLineCaps.dwStippleWidth) << std::endl;
+            std::cout << format("  ~ dpcLineCaps.dwStippleWidth: ", caps5HAL.dpcLineCaps.dwStippleHeight) << std::endl;
+            std::cout << format("  ~ dcpTriCaps.dwStippleWidth: ", caps5HAL.dpcTriCaps.dwStippleWidth) << std::endl;
+            std::cout << format("  ~ dcpTriCaps.dwStippleWidth: ", caps5HAL.dpcTriCaps.dwStippleHeight) << std::endl;
             std::cout << format("  ~ dwMaxBufferSize: ", caps5HAL.dwMaxBufferSize) << std::endl;
             std::cout << format("  ~ dwMaxVertexCount: ", caps5HAL.dwMaxVertexCount) << std::endl;
             std::cout << format("  ~ dwMinTextureWidth: ", caps5HAL.dwMinTextureWidth) << std::endl;
