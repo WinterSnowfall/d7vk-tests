@@ -412,6 +412,30 @@ class RGBTriangle {
             }
         }
 
+        // Test invalid dwSize on execute buffer creation
+        void testExecuteBufferDwSize() {
+            createDeviceWithFlags(IID_IDirect3DHALDevice, true);
+
+            m_totalTests++;
+
+            Com<IDirect3DExecuteBuffer> executeBuffer;
+            D3DEXECUTEBUFFERDESC ebDesc;
+            ebDesc.dwSize = 20; // Seen used by MageSlayer
+            ebDesc.dwFlags = D3DDEB_BUFSIZE;
+            ebDesc.dwCaps = 0;
+            ebDesc.dwBufferSize = 200;
+            ebDesc.lpData = nullptr;
+
+
+            HRESULT status = m_device->CreateExecuteBuffer(&ebDesc, &executeBuffer, NULL);
+            if (FAILED(status)) {
+                std::cout << "  - The execute buffer dwSize test has failed" << std::endl;
+            } else {
+                m_passedTests++;
+                std::cout << "  + The execute buffer dwSize test has passed" << std::endl;
+            }
+        }
+
         void printTestResults() {
             std::cout << std::endl << format("Passed ", m_passedTests, "/", m_totalTests, " tests") << std::endl;
         }
@@ -667,6 +691,7 @@ int main(int, char**) {
         // run D3D Device tests
         rgbTriangle.startTests();
         rgbTriangle.testD3D3Interface();
+        rgbTriangle.testExecuteBufferDwSize();
         rgbTriangle.printTestResults();
 
         // D3D3 triangle
