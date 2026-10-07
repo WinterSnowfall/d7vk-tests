@@ -775,7 +775,14 @@ class RGBTriangle {
             std::cout << format("  ~ MaxStreams: ", caps8.MaxStreams) << std::endl;
             std::cout << format("  ~ MaxStreamStride: ", caps8.MaxStreamStride) << std::endl;
             std::cout << format("  ~ VertexShaderVersion: ", vsVersion[caps8.VertexShaderVersion]) << std::endl;
-            std::cout << format("  ~ MaxVertexShaderConst: ", caps8.MaxVertexShaderConst) << std::endl;
+            // may vary between interface and device modes (SWVP or HWVP)
+            if (!m_canOnlySWVP) {
+                std::cout << format("  ~ MaxVertexShaderConst: ", caps8.MaxVertexShaderConst, " (I), ", caps8SWVP.MaxVertexShaderConst,
+                                    " (SWVP), ", caps8HWVP.MaxVertexShaderConst, " (HWVP)") << std::endl;
+            } else {
+                std::cout << format("  ~ MaxVertexShaderConst: ", caps8.MaxVertexShaderConst, " (I), ", caps8SWVP.MaxVertexShaderConst,
+                                    " (SWVP)") << std::endl;
+            }
             std::cout << format("  ~ PixelShaderVersion: ", psVersion[caps8.PixelShaderVersion]) << std::endl;
             // typically FLT_MAX
             std::cout << format("  ~ MaxPixelShaderValue: ", caps8.MaxPixelShaderValue) << std::endl;
@@ -2026,6 +2033,75 @@ class RGBTriangle {
             }
         }
 
+        // Try to create a device with a lockable multisampled back buffer
+        void testDeviceWithMultisampledLockableBackBuffer() {
+            // use a separate device for this test
+            Com<IDirect3DDevice8> device;
+
+            DWORD behaviorFlags = D3DCREATE_HARDWARE_VERTEXPROCESSING;
+            D3DPRESENT_PARAMETERS presentParams;
+            ZeroMemory(&presentParams, sizeof(presentParams));
+
+            presentParams.Windowed = FALSE;
+            presentParams.hDeviceWindow = m_hWnd;
+            presentParams.SwapEffect = D3DSWAPEFFECT_DISCARD;
+            presentParams.BackBufferCount = 1;
+            presentParams.MultiSampleType = D3DMULTISAMPLE_4_SAMPLES;
+            presentParams.Flags = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
+            presentParams.BackBufferWidth = RGBTriangle::WINDOW_WIDTH;
+            presentParams.BackBufferHeight = RGBTriangle::WINDOW_HEIGHT;
+            presentParams.BackBufferFormat = m_pp.BackBufferFormat;
+
+            HRESULT status = m_d3d->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, NULL,
+                                                 behaviorFlags, &presentParams, &device);
+
+            m_totalTests++;
+
+            if(FAILED(status)) {
+                std::cout << "  + The multisampled lockable back buffer test has passed" << std::endl;
+                m_passedTests++;
+            } else {
+                std::cout << "  - The multisampled lockable back buffer test has passed" << std::endl;
+            }
+        }
+
+        // Try to create a lockable multisampled render target
+        void testMultisampledLockableRenderTarget() {
+            resetOrRecreateDevice();
+
+            Com<IDirect3DSurface8> renderTarget;
+
+            m_totalTests++;
+
+            HRESULT status = m_device->CreateRenderTarget(256, 256, D3DFMT_X8R8G8B8,
+                                                          D3DMULTISAMPLE_4_SAMPLES, TRUE, &renderTarget);
+            if (FAILED(status)) {
+                m_passedTests++;
+                std::cout << "  + The multisampled lockable render target test has passed" << std::endl;
+            } else {
+                std::cout << "  - The multisampled lockable render target test has failed" << std::endl;
+            }
+        }
+
+        // Try to create and lock a multisampled depth stencil
+        void testMultisampledLockableDepthStencil() {
+            resetOrRecreateDevice();
+
+            Com<IDirect3DSurface8> depthStencil;
+
+            m_totalTests++;
+
+            HRESULT status = m_device->CreateDepthStencilSurface(256, 256, D3DFMT_D16_LOCKABLE,
+                                                                 D3DMULTISAMPLE_4_SAMPLES, &depthStencil);
+
+            if (FAILED(status)) {
+                m_passedTests++;
+                std::cout << "  + The multisampled lockable depth stencil test has passed" << std::endl;
+            } else {
+                std::cout << "  - The multisampled lockable depth stencil test has failed" << std::endl;
+            }
+        }
+
         // Tests patch related calls
         void testPatchCalls() {
             // Patch draw calls aren't supported on early D3D cards, such as the Riva TNT2
@@ -2641,6 +2717,9 @@ int main(int, char**) {
         rgbTriangle.testPointSizeMinRSDefaultValue();
         rgbTriangle.testUnknownFormatObjectCreation();
         rgbTriangle.testDeviceWithoutHWND();
+        rgbTriangle.testDeviceWithMultisampledLockableBackBuffer();
+        rgbTriangle.testMultisampledLockableRenderTarget();
+        rgbTriangle.testMultisampledLockableDepthStencil();
         rgbTriangle.testPatchCalls();
         rgbTriangle.testCheckDeviceFormatWithBuffers();
         rgbTriangle.testClearWithUnboundDepthStencil();
