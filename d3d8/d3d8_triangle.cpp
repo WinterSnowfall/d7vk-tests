@@ -1728,6 +1728,115 @@ class RGBTriangle {
             }
         }
 
+        // CopyRects with invalid rects test
+        void testCopyRectsWithInvalidRects() {
+            resetOrRecreateDevice();
+
+            Com<IDirect3DTexture8> sourceTexture;
+            Com<IDirect3DTexture8> destinationTexture;
+
+            m_device->CreateTexture(256, 256, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &sourceTexture);
+            m_device->CreateTexture(256, 256, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &destinationTexture);
+
+            Com<IDirect3DSurface8> sourceSurface;
+            Com<IDirect3DSurface8> destinationSurface;
+
+            sourceTexture->GetSurfaceLevel(0, &sourceSurface);
+            destinationTexture->GetSurfaceLevel(0, &destinationSurface);
+
+            RECT invalidSourceRect = {128, 128, 64, 128};
+            RECT validSourceRect = {128, 128, 256, 256};
+            RECT zeroSourceRect = {1, 1, 1, 1};
+            POINT invalidDestPoint = {0, -60};
+            POINT validDestPoint = {0, 0};
+
+            m_totalTests++;
+
+            HRESULT statusISR = m_device->CopyRects(sourceSurface.ptr(), &invalidSourceRect, 1, destinationSurface.ptr(), &validDestPoint);
+            HRESULT statusIDP = m_device->CopyRects(sourceSurface.ptr(), &validSourceRect, 1, destinationSurface.ptr(), &invalidDestPoint);
+            HRESULT statusZSR = m_device->CopyRects(sourceSurface.ptr(), &zeroSourceRect, 1, destinationSurface.ptr(), &validDestPoint);
+            HRESULT statusIB  = m_device->CopyRects(sourceSurface.ptr(), &invalidSourceRect, 1, destinationSurface.ptr(), &invalidDestPoint);
+            HRESULT statusZCR = m_device->CopyRects(sourceSurface.ptr(), &validSourceRect, 0, destinationSurface.ptr(), &validDestPoint);
+            HRESULT statusVB  = m_device->CopyRects(sourceSurface.ptr(), &validSourceRect, 1, destinationSurface.ptr(), &validDestPoint);
+            HRESULT statusVN  = m_device->CopyRects(sourceSurface.ptr(), NULL, 0, destinationSurface.ptr(), NULL);
+            if (FAILED(statusISR) && FAILED(statusIDP) && FAILED(statusZSR) && FAILED(statusIB)
+             && SUCCEEDED(statusZCR) && SUCCEEDED(statusVB) && SUCCEEDED(statusVN)) {
+                m_passedTests++;
+                std::cout << "  + The CopyRects with invalid rects test has passed" << std::endl;
+            } else {
+                std::cout << "  - The CopyRects with invalid rects test has failed" << std::endl;
+            }
+        }
+
+        // CopyRects with stretching test
+        void testCopyRectsWithStretching() {
+            resetOrRecreateDevice();
+
+            Com<IDirect3DTexture8> sourceTexture;
+            Com<IDirect3DTexture8> destinationTexture;
+
+            m_device->CreateTexture(256, 256, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &sourceTexture);
+            m_device->CreateTexture(128, 128, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &destinationTexture);
+
+            Com<IDirect3DSurface8> sourceSurface;
+            Com<IDirect3DSurface8> destinationSurface;
+
+            sourceTexture->GetSurfaceLevel(0, &sourceSurface);
+            destinationTexture->GetSurfaceLevel(0, &destinationSurface);
+
+            RECT sourceRect = {0, 0, 256, 256};
+            POINT destPoint = {0, 0};
+
+            m_totalTests++;
+
+            HRESULT status = m_device->CopyRects(sourceSurface.ptr(), &sourceRect, 1, destinationSurface.ptr(), &destPoint);
+            if (FAILED(status)) {
+                m_passedTests++;
+                std::cout << "  + The CopyRects with stretching test has passed" << std::endl;
+            } else {
+                std::cout << "  - The CopyRects with stretching test has failed" << std::endl;
+            }
+        }
+
+        // CopyRects with compressed formats test
+        void testCopyRectsWithCompressedFormats() {
+            resetOrRecreateDevice();
+
+            Com<IDirect3DTexture8> sourceTexture;
+            Com<IDirect3DTexture8> destinationTexture;
+
+            m_device->CreateTexture(256, 256, 1, 0, D3DFMT_DXT3, D3DPOOL_DEFAULT, &sourceTexture);
+            m_device->CreateTexture(256, 256, 1, 0, D3DFMT_DXT3, D3DPOOL_DEFAULT, &destinationTexture);
+
+            Com<IDirect3DSurface8> sourceSurface;
+            Com<IDirect3DSurface8> destinationSurface;
+
+            sourceTexture->GetSurfaceLevel(0, &sourceSurface);
+            destinationTexture->GetSurfaceLevel(0, &destinationSurface);
+
+            RECT sourceRect = {0, 0, 256, 256};
+            RECT sourceRectUnaligned = {1, 1, 256, 256};
+            RECT sourceRectUnaligned2 = {3, 3, 256, 256};
+            RECT sourceRectUnaligned3 = {0, 3, 256, 256};
+            POINT destPoint = {0, 0};
+            POINT destPointUnaligned = {1, 1};
+
+            m_totalTests++;
+
+            HRESULT statusAligned    = m_device->CopyRects(sourceSurface.ptr(), &sourceRect, 1, destinationSurface.ptr(), &destPoint);
+            HRESULT statusUnaligned  = m_device->CopyRects(sourceSurface.ptr(), &sourceRectUnaligned, 1, destinationSurface.ptr(), &destPointUnaligned);
+            HRESULT statusUnaligned2 = m_device->CopyRects(sourceSurface.ptr(), &sourceRectUnaligned2, 1, destinationSurface.ptr(), &destPoint);
+            HRESULT statusUnaligned3 = m_device->CopyRects(sourceSurface.ptr(), &sourceRectUnaligned3, 1, destinationSurface.ptr(), &destPoint);
+            HRESULT statusUnaligned4 = m_device->CopyRects(sourceSurface.ptr(), &sourceRect, 1, destinationSurface.ptr(), &destPointUnaligned);
+            if (SUCCEEDED(statusAligned) &&
+                FAILED(statusUnaligned) && FAILED(statusUnaligned2) && FAILED(statusUnaligned3) && FAILED(statusUnaligned4)) {
+                m_passedTests++;
+                std::cout << "  + The CopyRects with compressed formats test has passed" << std::endl;
+            } else {
+                std::cout << "  - The CopyRects with compressed formats test has failed" << std::endl;
+            }
+        }
+
         // SetIndices with UINT BaseVertexIndex test
         void testSetIndicesWithUINTBVI() {
             resetOrRecreateDevice();
@@ -2388,11 +2497,11 @@ class RGBTriangle {
         void testDeviceCapabilities() {
             createDeviceWithFlags(&m_pp, D3DCREATE_SOFTWARE_VERTEXPROCESSING, D3DDEVTYPE_HAL, true, true);
 
-            D3DCAPS8 caps8SWVP;
             D3DCAPS8 caps8;
-
-            m_device->GetDeviceCaps(&caps8SWVP);
             m_d3d->GetDeviceCaps(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, &caps8);
+
+            D3DCAPS8 caps8SWVP;
+            m_device->GetDeviceCaps(&caps8SWVP);
 
             std::cout << std::endl << "Running device capabilities tests:" << std::endl;
 
@@ -2566,8 +2675,8 @@ class RGBTriangle {
             if (FAILED(status)) {
                 if (fallBackToSWVP) {
                     behaviorFlags &= ~D3DCREATE_MIXED_VERTEXPROCESSING &
-                                    ~D3DCREATE_HARDWARE_VERTEXPROCESSING &
-                                    ~D3DCREATE_PUREDEVICE;
+                                     ~D3DCREATE_HARDWARE_VERTEXPROCESSING &
+                                     ~D3DCREATE_PUREDEVICE;
                     behaviorFlags |= D3DCREATE_SOFTWARE_VERTEXPROCESSING;
 
                     status = m_d3d->CreateDevice(D3DADAPTER_DEFAULT, deviceType, m_hWnd,
@@ -2705,6 +2814,9 @@ int main(int, char**) {
         //rgbTriangle.testStateBlockWithInvalidToken();
         rgbTriangle.testCopyRectsDepthStencilFormat();
         rgbTriangle.testCopyRectsWithDifferentSurfaceFormats();
+        rgbTriangle.testCopyRectsWithInvalidRects();
+        rgbTriangle.testCopyRectsWithStretching();
+        rgbTriangle.testCopyRectsWithCompressedFormats();
         // tests against the underflow of BaseVertexIndex,
         // but has to allocate a ~2GB index buffer to do so,
         // which is very slow, hence disabling by default
